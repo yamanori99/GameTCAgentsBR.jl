@@ -1,0 +1,64 @@
+name: CI
+
+# Julia 1.13 only. Registry-tree installs the package from a bare
+# file:// repository, then runs Pkg.test outside the checkout.
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Pkg.test - 1.13 - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - uses: julia-actions/cache@v3
+        with:
+          cache-scratchspaces: false
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          coverage: true
+      - uses: julia-actions/julia-processcoverage@v1
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+        with:
+          files: lcov.info
+          use_oidc: true
+          fail_ci_if_error: true
+
+  test-registry-tree:
+    name: Pkg.test - registry tree - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - uses: julia-actions/cache@v3
+        with:
+          cache-scratchspaces: false
+      - uses: ./.github/actions/registry-tree-test

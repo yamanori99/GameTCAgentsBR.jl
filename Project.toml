@@ -1,0 +1,18 @@
+name = "GameTCAgentsBR"
+uuid = "4f7e1118-2fd8-4039-92cc-5e4a86f330bb"
+version = "0.0.1"
+authors = ["YAMAMOTO, Takanori <takanori.yamamoto.99@gmail.com>"]
+
+[workspace]
+projects = ["demo", "test"]
+
+[deps]
+ArgCheck = "dce04be8-c92d-5529-be00-80e4d2c0e197"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
+[compat]
+ArgCheck = "2.5.0"
+Printf = "1.11"
+Random = "1.11"
+julia = "1.13"

@@ -1,0 +1,50 @@
+name: JETLS
+
+# Julia 1.13. JETLS supports 1.12.2–1.13.
+# The local script uses three --root values, so CI runs the script
+# instead of one `jetls check --root=.` over a flat file list.
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+permissions:
+  contents: read
+
+jobs:
+  jetls:
+    name: JETLS - 1.13 - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - uses: julia-actions/cache@v3
+        with:
+          cache-scratchspaces: false
+      - name: Install jetls
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.julia/bin"
+          echo "$HOME/.julia/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.julia/bin:$PATH"
+          if [[ -z "${JULIA_APPS_JULIA_CMD:-}" ]]; then
+            export JULIA_APPS_JULIA_CMD="$(command -v julia)"
+          fi
+          julia --startup-file=no -e '
+            using Pkg
+            Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="release")
+          '
+      - name: Run jetls check
+        run: ./.github/jetls-check.sh --progress=none

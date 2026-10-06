@@ -1,0 +1,16 @@
+# CLI demo environment. Entry point: demo/run.jl
+
+[deps]
+GameTCAgentsBR = "4f7e1118-2fd8-4039-92cc-5e4a86f330bb"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
+
+[sources]
+GameTCAgentsBR = {path = ".."}
+
+[compat]
+ProgressMeter = "1.11"
+UnicodePlots = "3.8"
+julia = "1.13"
