@@ -61,3 +61,20 @@ jobs:
         with:
           cache-scratchspaces: false
       - uses: ./.github/actions/registry-tree-test
+
+  aqua:
+    name: Aqua - 1.13 - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - uses: julia-actions/cache@v3
+        with:
+          cache-scratchspaces: false
+      - name: Aqua.test_all (latest Aqua)
+        run: ./.github/aqua-check.sh
