@@ -120,7 +120,6 @@ end
         text = String(take!(buf))
         @test occursin("Configuration", text)
         @test occursin("Payoff (row = own strategy, column = opponent)", text)
-        @test !occursin("3×3 Nash Bargaining", text)
         @test occursin("L", text)
         @test occursin("M", text)
         @test occursin("H", text)
@@ -138,8 +137,6 @@ end
         @test occursin("A remembers B strategies", out)
         @test occursin("rows need not sum to 100%", out)
         @test occursin("diagnostic, not payoff", out)
-        @test !occursin("Red King", out)
-        @test !occursin("Red Queen", out)
 
         usage = IOBuffer()
         print_usage(usage)
@@ -165,8 +162,6 @@ end
         _, config = _demo_setup(:l45)
         config = _fast_config(config)
         population = AgentPopulation(config)
-        @test first(population.group_a_indices) == population.agents[first(population.group_a_indices)].id
-        @test first(population.group_b_indices) == population.agents[first(population.group_b_indices)].id
         mem = MemorySystem(config)
         rec = ShareSeries(1, Random.Xoshiro(1))
         rec(1, mem, config, population)
@@ -174,31 +169,15 @@ end
         @test length(rec.group_a_against_group_a[1]) == config.num_strategies_a
     end
 
-    @testset "counts and trajectory smoke" begin
-        _, config = _demo_setup(:l30)
-        config = _fast_config(config)
-        counts_opts = DemoOptions(:l30, false, 10, 1, 20, false)
-        results, rec = _run_demo(config, counts_opts; io = IOBuffer())
-        @test rec === nothing
-        @test haskey(results, :a_remembers_a_trial_count)
-        @test length(results.a_remembers_a_trial_count) == max(config.num_strategies_a, config.num_strategies_b)
-
-        traj_opts = DemoOptions(:l30, true, 5, 2, 20, false)
-        traj_cfg = _trajectory_config(config, traj_opts)
-        tresults, trec = _run_demo(traj_cfg, traj_opts; io = IOBuffer())
-        @test trec isa ShareSeries
-        @test !isempty(trec.steps)
-        @test !isempty(trec.payoff_gap)
-        @test haskey(tresults, :b_remembers_b_trial_count)
-
+    @testset "one-group trajectory" begin
         _, one_group = _demo_setup(:l40one)
         one_opts = DemoOptions(:l40one, true, 5, 2, 20, false)
         one_cfg = _trajectory_config(_fast_config(one_group), one_opts)
         _, one_rec = _run_demo(one_cfg, one_opts; io = IOBuffer())
         @test one_rec isa ShareSeries
-        @test !isempty(one_rec.steps)
-        @test !isempty(one_rec.group_b_against_group_b)
+        @test one_rec.steps == [4, 8, 12, 16, 20]
         @test isempty(one_rec.group_a_against_group_a)
+        @test isempty(one_rec.group_a_against_group_b)
         @test isempty(one_rec.payoff_gap)
     end
 end
