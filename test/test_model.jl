@@ -10,7 +10,8 @@ using GameTCAgentsBR:
     _push_memory!,
     _record_observation!,
     assign_groups,
-    determine_strategy
+    determine_strategy,
+    payoff_matrix
 
 @testset "Model" begin
     @testset "SimConfig" begin
@@ -117,6 +118,7 @@ using GameTCAgentsBR:
         @test all(a.uses_type_conditioning for a in by_group.agents if a.group == GROUP_A)
         @test all(!a.uses_type_conditioning for a in by_group.agents if a.group == GROUP_B)
 
+        # One uniform draw per agent. Seed 202 and p = 0.5 yield 520 successes.
         Random.seed!(202)
         partial = AgentPopulation(
             SimConfig(
@@ -125,7 +127,7 @@ using GameTCAgentsBR:
             )
         )
         tc_count = count(a.uses_type_conditioning for a in partial.agents)
-        @test 400 < tc_count < 600
+        @test tc_count == 520
     end
 
     @testset "MemorySystem" begin
@@ -171,11 +173,11 @@ using GameTCAgentsBR:
         payoffs = zeros(Float64, 3)
         optimal_strategies = Vector{Int}(undef, 3)
 
-        Random.seed!(123)
+        empty_rng = Random.Xoshiro(123)
         strategy, num_optimal, has_mem = determine_strategy(
-            mem, agent1, agent5, config, payoffs, optimal_strategies,
+            mem, agent1, agent5, config, payoffs, optimal_strategies, empty_rng,
         )
-        @test 1 <= strategy <= 3
+        @test strategy == Int8(2)
         @test num_optimal == 3
         @test has_mem == false
 
@@ -302,6 +304,57 @@ using GameTCAgentsBR:
             1, override_mem, override_pop, override_config,
         )
         @test (kept_s1, kept_s2) == (Int8(1), Int8(2))
+
+        # Group memory says the opponent played H. Common memory says L.
+        # Without type conditioning the choice follows the common memory.
+        common_game = pairgame([3.0 3.0 3.0; 5.0 5.0 0.0; 7.0 0.0 0.0])
+        common_config = SimConfig(
+            game = common_game, num_agents = 2,
+            memory_length_for_group_b = 2, common_memory_length = 2,
+        )
+        common_mem = MemorySystem(common_config)
+        for _ in 1:2
+            _push_memory!(
+                common_mem.group_b_memories, common_mem.group_b_idx, 1, Int8(3), 2,
+            )
+            _push_memory!(
+                common_mem.common_memories, common_mem.common_idx, 1, Int8(1), 2,
+            )
+        end
+        plain = Agent(1, GROUP_A, false)
+        opponent_b = Agent(2, GROUP_B, true)
+        strategy, num_optimal, has_mem = determine_strategy(
+            common_mem, plain, opponent_b, common_config, payoffs, optimal_strategies,
+        )
+        @test strategy == Int8(3)
+        @test num_optimal == 1
+        @test has_mem == true
+
+        # AA and AB disagree on the best reply to opponent strategy 1.
+        aa = [5.0 0.0; 0.0 1.0]
+        ab = [0.0 1.0; 4.0 0.0]
+        bb = [1.0 0.0; 0.0 5.0]
+        ba = [0.0 4.0; 1.0 0.0]
+        split_game = PairGame(["L", "H"], ["L", "H"], aa, ab, bb, ba)
+        @test payoff_matrix(split_game, GROUP_A, GROUP_A) === aa
+        @test payoff_matrix(split_game, GROUP_A, GROUP_B) === ab
+        @test payoff_matrix(split_game, GROUP_B, GROUP_B) === bb
+        @test payoff_matrix(split_game, GROUP_B, GROUP_A) === ba
+        split_config = SimConfig(
+            game = split_game, num_agents = 2, group_a_ratio = 0.5,
+            memory_length_for_group_b = 1,
+        )
+        split_mem = MemorySystem(split_config)
+        _push_memory!(split_mem.group_b_memories, split_mem.group_b_idx, 1, Int8(1), 1)
+        split_payoffs = zeros(2)
+        split_optimal = Vector{Int}(undef, 2)
+        strategy, num_optimal, has_mem = determine_strategy(
+            split_mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true),
+            split_config, split_payoffs, split_optimal,
+        )
+        @test strategy == Int8(2)
+        @test num_optimal == 1
+        @test has_mem == true
     end
 
     @testset "run_simulation" begin

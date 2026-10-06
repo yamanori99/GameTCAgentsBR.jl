@@ -4,6 +4,18 @@ Tests for strategy counts, batch trials, payoffs, and strategy shares.
 
 using GameTCAgentsBR: GROUP_A, _push_memory!, _record_observation!
 
+function _trial_presence(trials, key)
+    n = length(first(trials).counts[key])
+    present = zeros(Int, n)
+    for trial in trials
+        counts = trial.counts[key]
+        for i in 1:n
+            counts[i] > 0 && (present[i] += 1)
+        end
+    end
+    return present
+end
+
 @testset "Analysis" begin
     @testset "count_final_strategies" begin
         config = SimConfig(
@@ -39,6 +51,26 @@ using GameTCAgentsBR: GROUP_A, _push_memory!, _record_observation!
         sparse_counts = count_final_strategies(sparse, sparse_config)
         @test sum(sparse_counts.a_remembers_a_slot_count) == 1
         @test sparse_counts.a_remembers_a_slot_count[2] == 1
+
+        # Two slots of the same strategy count twice. Placeholders and an
+        # out-of-range code do not. Common memory is not included.
+        slot_config = SimConfig(
+            game = TEST_GAME, num_agents = 2, group_a_ratio = 0.5,
+            memory_length_for_group_a = 4, memory_length_for_group_b = 4,
+            common_memory_length = 3,
+        )
+        slot_mem = MemorySystem(slot_config)
+        slot_mem.group_a_memories[1, 1] = Int8(1)
+        slot_mem.group_a_memories[1, 2] = Int8(1)
+        slot_mem.group_a_memories[1, 4] = Int8(9)
+        slot_mem.group_b_memories[2, 1] = Int8(2)
+        slot_mem.group_b_memories[2, 2] = Int8(2)
+        fill!(slot_mem.common_memories, Int8(3))
+        slot_counts = count_final_strategies(slot_mem, slot_config)
+        @test slot_counts.a_remembers_a_slot_count == [2, 0, 0]
+        @test slot_counts.a_remembers_b_slot_count == [0, 0, 0]
+        @test slot_counts.b_remembers_a_slot_count == [0, 0, 0]
+        @test slot_counts.b_remembers_b_slot_count == [0, 2, 0]
     end
 
     @testset "run_batch" begin
@@ -51,18 +83,21 @@ using GameTCAgentsBR: GROUP_A, _push_memory!, _record_observation!
             random_seed = 42,
         )
         result = run_batch(config)
-        @test all(result.a_remembers_a_trial_count .<= 3)
-        @test all(result.a_remembers_b_trial_count .<= 3)
-        @test all(result.b_remembers_a_trial_count .<= 3)
-        @test all(result.b_remembers_b_trial_count .<= 3)
+        @test result.a_remembers_a_trial_count == _trial_presence(result.trials, :a_remembers_a_slot_count)
+        @test result.a_remembers_b_trial_count == _trial_presence(result.trials, :a_remembers_b_slot_count)
+        @test result.b_remembers_a_trial_count == _trial_presence(result.trials, :b_remembers_a_slot_count)
+        @test result.b_remembers_b_trial_count == _trial_presence(result.trials, :b_remembers_b_slot_count)
         @test length(result.trials) == 3
         @test all(trial -> trial isa TrialResult, result.trials)
         @test result.trials[1].seed != result.trials[2].seed
         @test haskey(result.trials[1].counts, :a_remembers_a_slot_count)
 
         again = run_batch(config)
-        @test again.trials[1].seed == result.trials[1].seed
-        @test again.trials[1].counts.a_remembers_a_slot_count == result.trials[1].counts.a_remembers_a_slot_count
+        @test [trial.seed for trial in again.trials] == [trial.seed for trial in result.trials]
+        @test again.a_remembers_a_trial_count == result.a_remembers_a_trial_count
+        @test again.a_remembers_b_trial_count == result.a_remembers_b_trial_count
+        @test again.b_remembers_a_trial_count == result.b_remembers_a_trial_count
+        @test again.b_remembers_b_trial_count == result.b_remembers_b_trial_count
 
         trial_seeds = [100, 200, 300]
         seeded = SimConfig(
@@ -143,9 +178,11 @@ using GameTCAgentsBR: GROUP_A, _push_memory!, _record_observation!
             counts.a_remembers_b_slot_count,
             config.game.payoff_AB,
         )
+        # B remembers A playing L (35 slots). A remembers B playing H (15 slots).
+        @test from_memory.payoff_A ≈ 2.0 atol = 0.001
+        @test from_memory.payoff_B ≈ 8.0 atol = 0.001
+        @test from_memory.payoff_gap ≈ 0.6 atol = 0.001
         @test from_memory.advantage == :b_advantage
-        @test from_memory.payoff_gap > 0.5
-        @test from_memory.payoff_B > from_memory.payoff_A
     end
 
     @testset "sample_strategy_shares" begin
