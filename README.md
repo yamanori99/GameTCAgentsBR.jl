@@ -2,8 +2,9 @@
 
 [English](README.md) · [日本語](README.ja.md)
 
-![Test](https://img.shields.io/github/actions/workflow/status/yamanori99/GameTCAgentsBR.jl/CI.yml?style=flat-square&logo=githubactions&logoColor=white&label=Test)
-![Codecov](https://img.shields.io/codecov/c/github/yamanori99/GameTCAgentsBR.jl?style=flat-square&logo=codecov&logoColor=white)
+[![Test](https://img.shields.io/github/actions/workflow/status/yamanori99/GameTCAgentsBR.jl/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=Test)](https://github.com/yamanori99/GameTCAgentsBR.jl/actions/workflows/ci.yml)
+[![Codecov](https://img.shields.io/codecov/c/github/yamanori99/GameTCAgentsBR.jl?style=flat-square&logo=codecov&logoColor=white)](https://codecov.io/gh/yamanori99/GameTCAgentsBR.jl)
+[![docs-dev](https://img.shields.io/badge/docs-dev-blue?style=flat-square&logo=gitbook&logoColor=white)](https://yamanori99.github.io/GameTCAgentsBR.jl/dev/)
 [![code style: runic](https://img.shields.io/badge/code_style-%E1%9A%B1%E1%9A%A2%E1%9A%BE%E1%9B%81%E1%9A%B2-black)](https://github.com/fredrikekre/Runic.jl)
 
 GameTCAgentsBR.jl is a simulation of repeated pairwise games in a finite population.

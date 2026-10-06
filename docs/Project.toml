@@ -1,0 +1,11 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+GameTCAgentsBR = "4f7e1118-2fd8-4039-92cc-5e4a86f330bb"
+
+[sources]
+GameTCAgentsBR = {path = ".."}
+
+[compat]
+Documenter = "1"
+GameTCAgentsBR = "0.0.1"
+julia = "1.13"
