@@ -67,14 +67,7 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             6.0 0.0 0.0
         ]
-        game = PairGame(
-            ["L", "M", "H"],
-            ["L", "M", "H"],
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-        )
+        game = PairGame(["L", "M", "H"], demand_payoff)
         config = SimConfig(;
             game = game,
             num_agents = 20,
@@ -98,14 +91,7 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             9.5 0.0 0.0
         ]
-        game = PairGame(
-            ["L", "M", "H"],
-            ["L", "M", "H"],
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-        )
+        game = PairGame(["L", "M", "H"], demand_payoff)
         config = SimConfig(;
             game = game,
             num_agents = 20,
@@ -129,14 +115,7 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             9.0 0.0 0.0
         ]
-        game = PairGame(
-            ["L", "M", "H"],
-            ["L", "M", "H"],
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-        )
+        game = PairGame(["L", "M", "H"], demand_payoff)
         config = SimConfig(;
             game = game,
             num_agents = 20,
@@ -160,14 +139,7 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             8.5 0.0 0.0
         ]
-        game = PairGame(
-            ["L", "M", "H"],
-            ["L", "M", "H"],
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-        )
+        game = PairGame(["L", "M", "H"], demand_payoff)
         config = SimConfig(;
             game = game,
             num_agents = 20,
@@ -191,14 +163,7 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             8.0 0.0 0.0
         ]
-        game = PairGame(
-            ["L", "M", "H"],
-            ["L", "M", "H"],
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-        )
+        game = PairGame(["L", "M", "H"], demand_payoff)
         config = SimConfig(;
             game = game,
             num_agents = 20,
@@ -222,14 +187,7 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             7.5 0.0 0.0
         ]
-        game = PairGame(
-            ["L", "M", "H"],
-            ["L", "M", "H"],
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-        )
+        game = PairGame(["L", "M", "H"], demand_payoff)
         config = SimConfig(;
             game = game,
             num_agents = 20,
@@ -253,14 +211,7 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             7.0 0.0 0.0
         ]
-        game = PairGame(
-            ["L", "M", "H"],
-            ["L", "M", "H"],
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-        )
+        game = PairGame(["L", "M", "H"], demand_payoff)
         config = SimConfig(;
             game = game,
             num_agents = 20,
@@ -284,14 +235,7 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             6.5 0.0 0.0
         ]
-        game = PairGame(
-            ["L", "M", "H"],
-            ["L", "M", "H"],
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-        )
+        game = PairGame(["L", "M", "H"], demand_payoff)
         config = SimConfig(;
             game = game,
             num_agents = 20,
@@ -315,14 +259,7 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             6.0 0.0 0.0
         ]
-        game = PairGame(
-            ["L", "M", "H"],
-            ["L", "M", "H"],
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-        )
+        game = PairGame(["L", "M", "H"], demand_payoff)
         config = SimConfig(;
             game = game,
             num_agents = 20,
@@ -346,14 +283,7 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             5.5 0.0 0.0
         ]
-        game = PairGame(
-            ["L", "M", "H"],
-            ["L", "M", "H"],
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-            demand_payoff,
-        )
+        game = PairGame(["L", "M", "H"], demand_payoff)
         config = SimConfig(;
             game = game,
             num_agents = 20,
@@ -536,7 +466,7 @@ function (rec::ShareSeries)(step, memory, config, population)
     if n_a > 0 && n_b > 0
         a_counts = round.(Int, shares.group_a_against_group_b .* n_a)
         b_counts = round.(Int, shares.group_b_against_group_a .* n_b)
-        gap = compute_payoff_outcome(a_counts, b_counts, config.game.payoff_AB).payoff_gap
+        gap = compute_payoff_outcome(a_counts, b_counts, config.game.U).payoff_gap
         push!(rec.payoff_gap, isnan(gap) ? 0.0 : gap)
     end
     return nothing
@@ -591,21 +521,13 @@ function print_configuration(io::IO, config::SimConfig)
         "  run              $(config.num_initializations) initializations × $(config.steps_per_initialization) steps, seed=$(seed)",
     )
     println(io)
-    if game.payoff_AA == game.payoff_AB == game.payoff_BB == game.payoff_BA &&
-            game.strategy_labels_A == game.strategy_labels_B
-        _print_matrix(
-            io,
-            "Payoff (row = own strategy, column = opponent)",
-            game.payoff_AA,
-            game.strategy_labels_A,
-            game.strategy_labels_A,
-        )
-    else
-        _print_matrix(io, "A's payoff, opponent A", game.payoff_AA, game.strategy_labels_A, game.strategy_labels_A)
-        _print_matrix(io, "A's payoff, opponent B", game.payoff_AB, game.strategy_labels_A, game.strategy_labels_B)
-        _print_matrix(io, "B's payoff, opponent A", game.payoff_BA, game.strategy_labels_B, game.strategy_labels_A)
-        _print_matrix(io, "B's payoff, opponent B", game.payoff_BB, game.strategy_labels_B, game.strategy_labels_B)
-    end
+    _print_matrix(
+        io,
+        "Payoff (row = own strategy, column = opponent)",
+        game.U,
+        game.labels,
+        game.labels,
+    )
     return
 end
 
@@ -631,10 +553,10 @@ end
 function _print_demand_summary(io::IO, results, config::SimConfig)
     a_counts = results.b_remembers_a_trial_count
     b_counts = results.a_remembers_b_trial_count
-    labels = config.game.strategy_labels_A
+    labels = config.game.labels
     n = min(length(labels), length(a_counts), length(b_counts))
     n == 0 && return
-    demands = [config.game.payoff_AA[i, 1] for i in 1:n]
+    demands = [config.game.U[i, 1] for i in 1:n]
     a_total = sum(a_counts[i] for i in 1:n)
     b_total = sum(b_counts[i] for i in 1:n)
     a_total > 0 && b_total > 0 || return
@@ -658,7 +580,7 @@ function print_results(io::IO, results, config::SimConfig; show_summary::Bool = 
     println(io, _DEMO_SEPARATOR)
     println(io, "Final-memory trial counts")
     println(io, _DEMO_SEPARATOR)
-    labels_A = config.game.strategy_labels_A
+    labels = config.game.labels
     n_trials = config.num_initializations
     println(io)
     println(io, "Trials remembering each strategy across $(n_trials) initializations")
@@ -672,7 +594,7 @@ function print_results(io::IO, results, config::SimConfig; show_summary::Bool = 
             "B remembers B strategies" => results.b_remembers_b_trial_count,
         )
     end
-    _print_counts_table(io, labels_A, rows, n_trials)
+    _print_counts_table(io, labels, rows, n_trials)
     println(io, "  Note: strategies can coexist in memory, so rows need not sum to 100%.")
     if show_summary
         println(io)
@@ -732,7 +654,7 @@ function _print_inequality_analysis(io::IO, rec::ShareSeries, config::SimConfig)
     n_b = config.num_agents - config.group_a_size
     final_ab_counts = round.(Int, rec.group_a_against_group_b[end] .* n_a)
     final_ba_counts = round.(Int, rec.group_b_against_group_a[end] .* n_b)
-    final_result = compute_payoff_outcome(final_ab_counts, final_ba_counts, config.game.payoff_AB)
+    final_result = compute_payoff_outcome(final_ab_counts, final_ba_counts, config.game.U)
     advantage_str = final_result.advantage == :fair ? "approximately equal" :
         final_result.advantage == :a_advantage ? "A payoff higher" :
         final_result.advantage == :b_advantage ? "B payoff higher" :
@@ -750,18 +672,17 @@ end
 
 function _print_trajectory(io::IO, rec::ShareSeries, config::SimConfig)
     isempty(rec.steps) && return
-    labels_A = config.game.strategy_labels_A
-    labels_B = config.game.strategy_labels_B
+    labels = config.game.labels
     xmax = config.steps_per_initialization
     println(io)
     println(io, _DEMO_SEPARATOR)
     println(io, "Single-trial sampled strategy shares")
     println(io, _DEMO_SEPARATOR)
     println(io, "Sampled next strategies against one representative opponent from each populated group")
-    _plot_trajectory_block(io, "Strategies by Group A; opponent from Group A", rec.steps, rec.group_a_against_group_a, labels_A, xmax)
-    _plot_trajectory_block(io, "Strategies by Group A; opponent from Group B", rec.steps, rec.group_a_against_group_b, labels_A, xmax)
-    _plot_trajectory_block(io, "Strategies by Group B; opponent from Group A", rec.steps, rec.group_b_against_group_a, labels_B, xmax)
-    _plot_trajectory_block(io, "Strategies by Group B; opponent from Group B", rec.steps, rec.group_b_against_group_b, labels_B, xmax)
+    _plot_trajectory_block(io, "Strategies by Group A; opponent from Group A", rec.steps, rec.group_a_against_group_a, labels, xmax)
+    _plot_trajectory_block(io, "Strategies by Group A; opponent from Group B", rec.steps, rec.group_a_against_group_b, labels, xmax)
+    _plot_trajectory_block(io, "Strategies by Group B; opponent from Group A", rec.steps, rec.group_b_against_group_a, labels, xmax)
+    _plot_trajectory_block(io, "Strategies by Group B; opponent from Group B", rec.steps, rec.group_b_against_group_b, labels, xmax)
     _print_inequality_analysis(io, rec, config)
     return
 end

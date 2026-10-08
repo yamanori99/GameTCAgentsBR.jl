@@ -9,21 +9,10 @@ const TEST_DEMAND_PAYOFF = [
     5.5 0.0 0.0
 ]
 
-const TEST_GAME = PairGame(
-    ["L", "M", "H"],
-    ["L", "M", "H"],
-    copy(TEST_DEMAND_PAYOFF),
-    copy(TEST_DEMAND_PAYOFF),
-    copy(TEST_DEMAND_PAYOFF),
-    copy(TEST_DEMAND_PAYOFF),
-)
+const TEST_GAME = PairGame(["L", "M", "H"], TEST_DEMAND_PAYOFF)
 
-function pairgame(Ma::AbstractMatrix, Mb::AbstractMatrix = Ma)
-    A = Matrix{Float64}(Ma)
-    B = Matrix{Float64}(Mb)
-    n_A = size(A, 1)
-    n_B = size(B, 1)
-    return PairGame(string.(1:n_A), string.(1:n_B), A, copy(A), B, copy(B))
+function pairgame(M::AbstractMatrix)
+    return PairGame(string.(1:size(M, 1)), M)
 end
 
 struct PlayMWhenEmpty <: StrategyOverride end

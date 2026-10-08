@@ -41,12 +41,8 @@ using GameTCAgentsBR
 
 config = SimConfig(
     game = PairGame(
-        ["L", "M", "H"],  # Group A strategies
-        ["L", "M", "H"],  # Group B strategies
-        [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],  # A's payoff, opponent A
-        [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],  # A's payoff, opponent B
-        [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],  # B's payoff, opponent B
-        [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],  # B's payoff, opponent A
+        ["L", "M", "H"],
+        [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
     ),
     num_agents = 500,  # population size
     group_a_ratio = 0.3,  # Group A: minority (30%)
@@ -80,7 +76,7 @@ include("batch.jl")
 include("analysis.jl")
 
 # model.jl
-export PairGame, SimConfig, payoff_matrix
+export PairGame, SimConfig
 export GROUP_A, GROUP_B
 export Agent, AgentPopulation
 export MemorySystem

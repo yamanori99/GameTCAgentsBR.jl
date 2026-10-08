@@ -7,11 +7,31 @@ using GameTCAgentsBR:
     GROUP_B,
     MEMORY_PLACEHOLDER,
     PAYOFF_TIE_EPS,
+    _add_remembered_payoffs!,
     _push_memory!,
     _record_observation!,
     assign_groups,
-    determine_strategy,
-    payoff_matrix
+    determine_strategy
+
+function _average_config(U; play_a = 1:3, play_b = 1:3)
+    game = PairGame(["a", "b", "c"], U, play_a, play_b)
+    return SimConfig(
+        game = game, num_agents = 2, group_a_ratio = 0.5,
+        memory_length_for_group_a = 4,
+        memory_length_for_group_b = 4,
+        common_memory_length = 4,
+    )
+end
+
+function _remembered_payoffs(config, mem, agent, opponent)
+    n = config.num_strategies
+    means = zeros(n)
+    optimal = Vector{Int}(undef, n)
+    chosen, n_opt, saw_memory = determine_strategy(
+        mem, agent, opponent, config, means, optimal,
+    )
+    return chosen, n_opt, saw_memory, means
+end
 
 @testset "Model" begin
     @testset "SimConfig" begin
@@ -34,12 +54,10 @@ using GameTCAgentsBR:
         @testset "Derived fields" begin
             config = SimConfig(game = TEST_GAME, num_agents = 100, group_a_ratio = 0.3)
             @test config.group_a_size == 30
-            @test config.num_strategies_a == 3
-            @test config.num_strategies_b == 3
+            @test config.num_strategies == 3
 
             config2 = SimConfig(game = pairgame([1.0 2.0; 3.0 4.0]))
-            @test config2.num_strategies_a == 2
-            @test config2.num_strategies_b == 2
+            @test config2.num_strategies == 2
         end
 
         @testset "Validation" begin
@@ -64,23 +82,12 @@ using GameTCAgentsBR:
         end
 
         @testset "Payoff matrix sizes" begin
-            @test_throws ArgumentError PairGame(
-                ["1", "2"], ["1", "2"],
-                [1.0 2.0 3.0; 4.0 5.0 6.0], ones(2, 2), ones(2, 2), ones(2, 2),
-            )
-            asymmetric = PairGame(
-                ["L", "H"],
-                ["L", "M", "H"],
-                [1.0 0.0; 0.0 1.0],
-                [1.0 2.0 3.0; 4.0 5.0 6.0],
-                ones(3, 3),
-                ones(3, 2),
-            )
-            @test length(asymmetric.strategy_labels_A) == 2
-            @test length(asymmetric.strategy_labels_B) == 3
-            config = SimConfig(game = asymmetric, num_agents = 4, group_a_ratio = 0.5)
-            @test config.num_strategies_a == 2
-            @test config.num_strategies_b == 3
+            @test_throws ArgumentError PairGame(["1", "2"], [1.0 2.0 3.0; 4.0 5.0 6.0])
+            @test_throws ArgumentError PairGame(["L", "M", "H"], ones(3, 3), [1, 2, 3], Int[])
+            restricted = PairGame(["L", "M", "H"], ones(3, 3), [1, 2, 3], [1, 2])
+            @test restricted.playable_B == [1, 2]
+            config = SimConfig(game = restricted, num_agents = 4, group_a_ratio = 0.5)
+            @test config.num_strategies == 3
         end
     end
 
@@ -179,7 +186,7 @@ using GameTCAgentsBR:
         )
         @test strategy == Int8(2)
         @test num_optimal == 3
-        @test has_mem == false
+        @test !has_mem
 
         response_game = pairgame([3.0 3.0 3.0; 5.0 5.0 0.0; 7.0 0.0 0.0])
         response_config = SimConfig(
@@ -200,7 +207,7 @@ using GameTCAgentsBR:
         )
         @test strategy == Int8(3)
         @test num_optimal == 1
-        @test has_mem == true
+        @test has_mem
 
         # Column 1 payoffs sit inside and outside PAYOFF_TIE_EPS of the best.
         inside = 1.0 + PAYOFF_TIE_EPS / 2
@@ -227,7 +234,7 @@ using GameTCAgentsBR:
             tie_config, payoffs, optimal_strategies,
         )
         @test num_optimal == 3
-        @test has_mem == true
+        @test has_mem
 
         gap_game = pairgame(
             [
@@ -252,7 +259,7 @@ using GameTCAgentsBR:
         )
         @test strategy == Int8(3)
         @test num_optimal == 1
-        @test has_mem == true
+        @test has_mem
 
         kept1, kept2 = override_strategies(
             NoOverride(), Int8(1), Int8(2),
@@ -305,8 +312,8 @@ using GameTCAgentsBR:
         )
         @test (kept_s1, kept_s2) == (Int8(1), Int8(2))
 
-        # Group memory says the opponent played H. Common memory says L.
-        # Without type conditioning the choice follows the common memory.
+        # Remembering strategy 1 uses column 1 of U. Strategy 3 pays 7, 0, 0,
+        # so the best reply is strategy 3. Common memory is not that column.
         common_game = pairgame([3.0 3.0 3.0; 5.0 5.0 0.0; 7.0 0.0 0.0])
         common_config = SimConfig(
             game = common_game, num_agents = 2,
@@ -315,10 +322,10 @@ using GameTCAgentsBR:
         common_mem = MemorySystem(common_config)
         for _ in 1:2
             _push_memory!(
-                common_mem.group_b_memories, common_mem.group_b_idx, 1, Int8(3), 2,
+                common_mem.group_b_memories, common_mem.group_b_idx, 1, Int8(1), 2,
             )
             _push_memory!(
-                common_mem.common_memories, common_mem.common_idx, 1, Int8(1), 2,
+                common_mem.common_memories, common_mem.common_idx, 1, Int8(3), 2,
             )
         end
         plain = Agent(1, GROUP_A, false)
@@ -328,33 +335,154 @@ using GameTCAgentsBR:
         )
         @test strategy == Int8(3)
         @test num_optimal == 1
-        @test has_mem == true
+        @test has_mem
 
-        # AA and AB disagree on the best reply to opponent strategy 1.
-        aa = [5.0 0.0; 0.0 1.0]
-        ab = [0.0 1.0; 4.0 0.0]
-        bb = [1.0 0.0; 0.0 5.0]
-        ba = [0.0 4.0; 1.0 0.0]
-        split_game = PairGame(["L", "H"], ["L", "H"], aa, ab, bb, ba)
-        @test payoff_matrix(split_game, GROUP_A, GROUP_A) === aa
-        @test payoff_matrix(split_game, GROUP_A, GROUP_B) === ab
-        @test payoff_matrix(split_game, GROUP_B, GROUP_B) === bb
-        @test payoff_matrix(split_game, GROUP_B, GROUP_A) === ba
-        split_config = SimConfig(
-            game = split_game, num_agents = 2, group_a_ratio = 0.5,
+        # B cannot play strategy 3. Against remembered strategy 1, A's best reply is 3.
+        U = [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0]
+        limited = PairGame(["L", "M", "H"], U, [1, 2, 3], [1, 2])
+        limited_config = SimConfig(
+            game = limited, num_agents = 2, group_a_ratio = 0.5,
             memory_length_for_group_b = 1,
         )
-        split_mem = MemorySystem(split_config)
-        _push_memory!(split_mem.group_b_memories, split_mem.group_b_idx, 1, Int8(1), 1)
-        split_payoffs = zeros(2)
-        split_optimal = Vector{Int}(undef, 2)
+        limited_mem = MemorySystem(limited_config)
+        _push_memory!(limited_mem.group_b_memories, limited_mem.group_b_idx, 1, Int8(1), 1)
+        limited_payoffs = zeros(3)
+        limited_optimal = Vector{Int}(undef, 3)
         strategy, num_optimal, has_mem = determine_strategy(
-            split_mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true),
-            split_config, split_payoffs, split_optimal,
+            limited_mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true),
+            limited_config, limited_payoffs, limited_optimal,
         )
+        @test strategy == Int8(3)
+        @test num_optimal == 1
+        @test has_mem
+
+        # The same memory, read without type conditioning, still uses U.
+        plain_limited = MemorySystem(limited_config)
+        _push_memory!(plain_limited.group_b_memories, plain_limited.group_b_idx, 1, Int8(1), 1)
+        strategy, num_optimal, has_mem = determine_strategy(
+            plain_limited, Agent(1, GROUP_A, false), Agent(2, GROUP_A, true),
+            limited_config, limited_payoffs, limited_optimal,
+        )
+        @test strategy == Int8(3)
+        @test num_optimal == 1
+        @test has_mem
+
+        # B can only draw from strategies 1 and 2 when its memory is empty.
+        b_strategy, b_optimal, b_mem = determine_strategy(
+            MemorySystem(limited_config), Agent(2, GROUP_B, true), Agent(1, GROUP_A, true),
+            limited_config, limited_payoffs, limited_optimal, Xoshiro(1),
+        )
+        @test b_strategy in (Int8(1), Int8(2))
+        @test b_optimal == 2
+        @test !b_mem
+    end
+
+    @testset "Memory average" begin
+        U = [
+            1.0 4.0 0.0
+            2.0 0.0 8.0
+            9.0 1.0 3.0
+        ]
+
+        # Two observations and two empty slots. Divide by the observation count.
+        config = _average_config(U)
+        mem = MemorySystem(config)
+        _push_memory!(mem.group_b_memories, mem.group_b_idx, 1, Int8(1), 4)
+        _push_memory!(mem.group_b_memories, mem.group_b_idx, 1, Int8(2), 4)
+        strategy, num_optimal, has_mem, payoffs = _remembered_payoffs(
+            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true),
+        )
+        @test has_mem
+        @test payoffs ≈ (U[:, 1] .+ U[:, 2]) ./ 2
+        @test !(payoffs ≈ (U[:, 1] .+ U[:, 2]) ./ 4)
+        @test strategy == Int8(3)
+        @test num_optimal == 1
+
+        # Strategy 1 is remembered twice, so that column has twice the weight.
+        config = _average_config(U)
+        mem = MemorySystem(config)
+        for j in Int8[1, 1, 2]
+            _push_memory!(mem.group_b_memories, mem.group_b_idx, 1, j, 4)
+        end
+        strategy, _, _, payoffs = _remembered_payoffs(
+            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true),
+        )
+        @test payoffs ≈ (2 .* U[:, 1] .+ U[:, 2]) ./ 3
+        @test !(payoffs ≈ (U[:, 1] .+ U[:, 2]) ./ 2)
+        @test strategy == Int8(3)
+
+        # Type conditioning reads only the opponent's group. Common memory is unused.
+        config = _average_config(U)
+        mem = MemorySystem(config)
+        _push_memory!(mem.group_a_memories, mem.group_a_idx, 1, Int8(2), 4)
+        _push_memory!(mem.group_b_memories, mem.group_b_idx, 1, Int8(1), 4)
+        _push_memory!(mem.common_memories, mem.common_idx, 1, Int8(3), 4)
+        strategy, _, _, payoffs = _remembered_payoffs(
+            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true),
+        )
+        @test payoffs ≈ U[:, 1]
+        @test strategy == Int8(3)
+        strategy, _, _, payoffs = _remembered_payoffs(
+            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_A, true),
+        )
+        @test payoffs ≈ U[:, 2]
+        @test strategy == Int8(1)
+        strategy, _, _, payoffs = _remembered_payoffs(
+            config, mem, Agent(1, GROUP_A, false), Agent(2, GROUP_B, true),
+        )
+        @test payoffs ≈ (U[:, 1] .+ U[:, 2]) ./ 2
+        @test !(payoffs ≈ (U[:, 1] .+ U[:, 2] .+ U[:, 3]) ./ 3)
+        @test strategy == Int8(3)
+
+        # Strategy 3 pays 9 against column 1, and this group cannot play it.
+        config = _average_config(U, play_a = [1, 2])
+        mem = MemorySystem(config)
+        _push_memory!(mem.group_b_memories, mem.group_b_idx, 1, Int8(1), 4)
+        strategy, num_optimal, _, payoffs = _remembered_payoffs(
+            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true),
+        )
+        @test payoffs ≈ [1.0, 2.0, 0.0]
         @test strategy == Int8(2)
         @test num_optimal == 1
-        @test has_mem == true
+
+        # An index outside 1:n is rejected and is not added.
+        rejected = zeros(3)
+        @test_throws ArgumentError _add_remembered_payoffs!(
+            rejected, Int8[0], config.game, [1, 2, 3],
+        )
+        @test rejected == zeros(3)
+        partial = zeros(3)
+        @test_throws ArgumentError _add_remembered_payoffs!(
+            partial, Int8[1, 4], config.game, [1, 2, 3],
+        )
+        @test partial ≈ U[:, 1]
+    end
+
+    @testset "One strategy set" begin
+        U = [
+            4.5 4.5 4.5
+            5.0 5.0 0.0
+            5.5 0.0 0.0
+        ]
+        shared = PairGame(["L", "M", "H"], U)
+        @test shared.labels == ["L", "M", "H"]
+        @test shared.playable_A == [1, 2, 3]
+        @test shared.playable_B == [1, 2, 3]
+        @test shared.U == U
+        @test shared.U !== U
+
+        same_rows = PairGame(["L", "L"], [1.0 0.0; 1.0 0.0])
+        @test same_rows.playable_A == [1, 2]
+        @test same_rows.U[1, :] == same_rows.U[2, :]
+
+        partial = PairGame(["L", "M", "H"], U, [1, 2, 3], [1, 2])
+        @test partial.playable_A == [1, 2, 3]
+        @test partial.playable_B == [1, 2]
+
+        disjoint = PairGame(["a", "b", "c", "d", "e"], ones(5, 5), 1:3, 4:5)
+        @test disjoint.playable_A == [1, 2, 3]
+        @test disjoint.playable_B == [4, 5]
+        @test size(disjoint.U) == (5, 5)
     end
 
     @testset "run_simulation" begin
