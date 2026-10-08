@@ -1,6 +1,6 @@
 name = "GameTCAgentsBR"
 uuid = "4f7e1118-2fd8-4039-92cc-5e4a86f330bb"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["YAMAMOTO, Takanori <takanori.yamamoto.99@gmail.com>"]
 
 [workspace]
