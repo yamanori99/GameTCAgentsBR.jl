@@ -338,9 +338,11 @@ function determine_strategy(
     # Type conditioning reads only the opponent's group memory. Otherwise both
     # group memories are read. Common memory is not a column of U.
     banks = if agent.uses_type_conditioning
-        (opponent.group == GROUP_A ?
-            (@view memory.group_a_memories[agent.id, :]) :
-            (@view memory.group_b_memories[agent.id, :]),)
+        (
+            opponent.group == GROUP_A ?
+                (@view memory.group_a_memories[agent.id, :]) :
+                (@view memory.group_b_memories[agent.id, :]),
+        )
     else
         (
             @view(memory.group_a_memories[agent.id, :]),
