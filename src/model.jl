@@ -5,63 +5,49 @@ const GROUP_A = Int8(1)
 const GROUP_B = Int8(2)
 
 """
-    PairGame(strategy_labels_A, strategy_labels_B,
-             payoff_AA, payoff_AB, payoff_BB, payoff_BA)
+    PairGame(U)
+    PairGame(labels, U, play_a=1:n, play_b=1:n)
 
-Two-group matrix game. Each entry is the row player's payoff.
-Row = own strategy, column = opponent strategy.
+One strategy set and one row-player payoff matrix. `U[i, j]` is the payoff of
+strategy `i` against strategy `j`. The opponent's payoff is `U[j, i]`.
 
-- `payoff_AA`: A's payoff, opponent A (`nA`×`nA`)
-- `payoff_AB`: A's payoff, opponent B (`nA`×`nB`)
-- `payoff_BB`: B's payoff, opponent B (`nB`×`nB`)
-- `payoff_BA`: B's payoff, opponent A (`nB`×`nA`)
+`labels` names the rows for display. It is not used when a strategy is chosen.
+`play_a` and `play_b` are the strategies each group can play. Both default to
+every index of `U`.
 """
 struct PairGame
-    strategy_labels_A::Vector{String}
-    strategy_labels_B::Vector{String}
-    payoff_AA::Matrix{Float64}
-    payoff_AB::Matrix{Float64}
-    payoff_BB::Matrix{Float64}
-    payoff_BA::Matrix{Float64}
+    labels::Vector{String}
+    U::Matrix{Float64}
+    playable_A::Vector{Int}
+    playable_B::Vector{Int}
 
     function PairGame(
-            strategy_labels_A::Vector{String},
-            strategy_labels_B::Vector{String},
-            payoff_AA::Matrix{Float64},
-            payoff_AB::Matrix{Float64},
-            payoff_BB::Matrix{Float64},
-            payoff_BA::Matrix{Float64},
+            labels::Vector{String},
+            U::Matrix{Float64},
+            playable_A::Vector{Int},
+            playable_B::Vector{Int},
         )
-        n_A, n_B = length(strategy_labels_A), length(strategy_labels_B)
-        @argcheck (
-            size(payoff_AA) == (n_A, n_A) &&
-                size(payoff_AB) == (n_A, n_B) &&
-                size(payoff_BB) == (n_B, n_B) &&
-                size(payoff_BA) == (n_B, n_A)
-        ) "payoff matrix sizes must match strategy counts (n_A=$n_A, n_B=$n_B)"
-        return new(
-            strategy_labels_A,
-            strategy_labels_B,
-            payoff_AA,
-            payoff_AB,
-            payoff_BB,
-            payoff_BA,
-        )
+        n = size(U, 1)
+        @argcheck size(U, 2) == n "payoff matrix must be square"
+        @argcheck length(labels) == n "label count must match the payoff matrix"
+        @argcheck !isempty(playable_A) && !isempty(playable_B) "each group must have a strategy"
+        @argcheck allunique(playable_A) && allunique(playable_B) "playable strategies must be unique"
+        @argcheck all(i -> 1 <= i <= n, playable_A) &&
+            all(i -> 1 <= i <= n, playable_B) "playable strategies must be in 1:n"
+        return new(labels, U, playable_A, playable_B)
     end
 end
 
-"""
-    payoff_matrix(game, own_group, opponent_group) -> Matrix{Float64}
-
-Row player's payoff matrix for this pair of groups.
-"""
-function payoff_matrix(game::PairGame, own_group::Int8, opponent_group::Int8)
-    if own_group == GROUP_A
-        return opponent_group == GROUP_A ? game.payoff_AA : game.payoff_AB
-    else
-        return opponent_group == GROUP_B ? game.payoff_BB : game.payoff_BA
-    end
+function PairGame(
+        labels::AbstractVector{<:AbstractString},
+        U::AbstractMatrix{<:Real},
+        play_a = 1:size(U, 1),
+        play_b = 1:size(U, 1),
+    )
+    return PairGame(String.(labels), Matrix{Float64}(U), collect(Int, play_a), collect(Int, play_b))
 end
+
+PairGame(U::AbstractMatrix{<:Real}) = PairGame(string.(1:size(U, 1)), U)
 
 """Algorithm that may replace the two strategies chosen for an encounter."""
 abstract type StrategyOverride end
@@ -97,8 +83,7 @@ Simulation configuration. `game` is a required `PairGame`.
     steps_per_initialization::Int = 200000
     random_seed::Union{Int, Nothing} = nothing
     group_a_size::Int = round(Int, num_agents * group_a_ratio)
-    num_strategies_a::Int = length(game.strategy_labels_A)
-    num_strategies_b::Int = length(game.strategy_labels_B)
+    num_strategies::Int = size(game.U, 1)
 
     function SimConfig(
             game::PairGame,
@@ -115,8 +100,7 @@ Simulation configuration. `game` is a required `PairGame`.
             steps_per_initialization::Int,
             random_seed::Union{Int, Nothing},
             group_a_size::Int,
-            num_strategies_a::Int,
-            num_strategies_b::Int,
+            num_strategies::Int,
         )
         @argcheck 0.0 <= type_conditioning_ratio_a <= 1.0 &&
             0.0 <=
@@ -146,8 +130,7 @@ Simulation configuration. `game` is a required `PairGame`.
             steps_per_initialization,
             random_seed,
             group_a_size,
-            num_strategies_a,
-            num_strategies_b,
+            num_strategies,
         )
     end
 end
@@ -323,21 +306,23 @@ const PAYOFF_TIE_EPS = 1.0e-10
 Choose a strategy using memory for this encounter type.
 
 Returns `(strategy, num_optimal, has_memory)` where:
-- `strategy`: index in `1:num_strategies` for the agent's group
-- `num_optimal`: number of strategies tied for the highest memory-average payoff
-  (or the full strategy count when memory is empty)
+- `strategy`: index in `1:num_strategies`
+- `num_optimal`: number of playable strategies tied for the highest memory-average payoff
+  (or the playable count when memory is empty)
 - `has_memory`: whether the relevant memory had any observations
 
-`payoffs` and `optimal_strategies` must be at least as long as
-`max(num_strategies_a, num_strategies_b)`. `rng` supplies the random choice
-among tied or uninformed strategies. It defaults to the global RNG.
+`payoffs` and `optimal_strategies` must be at least as long as `num_strategies`.
+`rng` supplies the random choice among tied or uninformed strategies. It defaults
+to the global RNG.
 
 # Strategy Selection Rules
 1. If the relevant memory has observations:
-   - Average payoffs of each own strategy against remembered opponent strategies
+   - Average `U[s, j]` for each strategy `s` this group can play
+   - A type-conditioning agent uses only the current opponent's group memory
+   - Otherwise both group memories are used
    - Choose uniformly among the maximizing strategies
-2. If memory is empty:
-   - Choose uniformly at random
+2. If that memory is empty:
+   - Choose uniformly from the strategies this group can play
 """
 function determine_strategy(
         memory::MemorySystem,
@@ -348,41 +333,40 @@ function determine_strategy(
         optimal_strategies::Vector{Int},
         rng::AbstractRNG = Random.default_rng(),
     )
-    # Type conditioning reads the opponent's group memory. Otherwise, common memory.
-    if agent.uses_type_conditioning
-        remembered_strategies = opponent.group == GROUP_A ?
-            (@view memory.group_a_memories[agent.id, :]) :
-            (@view memory.group_b_memories[agent.id, :])
+    playable = agent.group == GROUP_A ? config.game.playable_A : config.game.playable_B
+
+    # Type conditioning reads only the opponent's group memory. Otherwise both
+    # group memories are read. Common memory is not a column of U.
+    banks = if agent.uses_type_conditioning
+        (
+            opponent.group == GROUP_A ?
+                (@view memory.group_a_memories[agent.id, :]) :
+                (@view memory.group_b_memories[agent.id, :]),
+        )
     else
-        remembered_strategies = @view memory.common_memories[agent.id, :]
-    end
-    # num_strategies is the row count of this group's payoff matrix.
-    num_strategies = agent.group == GROUP_A ?
-        config.num_strategies_a :
-        config.num_strategies_b
-
-    # An empty row has no sample, so each own strategy is equally likely.
-    if !any(x -> x != MEMORY_PLACEHOLDER, remembered_strategies)
-        strategy = Int8(rand(rng, 1:num_strategies))
-        return (strategy, num_strategies, false)
+        (
+            @view(memory.group_a_memories[agent.id, :]),
+            @view(memory.group_b_memories[agent.id, :]),
+        )
     end
 
-    # Sum the row player's payoff against each remembered opponent strategy.
+    filled = false
+    for bank in banks
+        if any(!=(MEMORY_PLACEHOLDER), bank)
+            filled = true
+            break
+        end
+    end
+    # An empty sample means each playable strategy is equally likely.
+    if !filled
+        strategy = Int8(playable[rand(rng, eachindex(playable))])
+        return (strategy, length(playable), false)
+    end
+
     fill!(payoffs, 0.0)
     n_observations = 0
-    pair_payoffs = payoff_matrix(config.game, agent.group, opponent.group)
-
-    @inbounds for remembered_strategy in remembered_strategies
-        # Unfilled slots are MEMORY_PLACEHOLDER and are not part of the sample.
-        if remembered_strategy != MEMORY_PLACEHOLDER
-            for own_strategy in 1:num_strategies
-                payoffs[own_strategy] += pair_payoffs[
-                    own_strategy,
-                    Int(remembered_strategy),
-                ]
-            end
-            n_observations += 1
-        end
+    for bank in banks
+        n_observations += _add_remembered_payoffs!(payoffs, bank, config.game, playable)
     end
 
     # The mean is the expected payoff under the empirical distribution in this row.
@@ -391,18 +375,42 @@ function determine_strategy(
     end
 
     # Keep every own strategy within PAYOFF_TIE_EPS of the best mean.
-    max_payoff = maximum(view(payoffs, 1:num_strategies))
+    max_payoff = maximum(s -> payoffs[s], playable)
     num_optimal = 0
-    @inbounds for i in 1:num_strategies
-        if payoffs[i] >= max_payoff - PAYOFF_TIE_EPS
+    for s in playable
+        if payoffs[s] >= max_payoff - PAYOFF_TIE_EPS
             num_optimal += 1
-            optimal_strategies[num_optimal] = i
+            optimal_strategies[num_optimal] = s
         end
     end
     # The first num_optimal entries are the tied strategies. Draw one of them.
     strategy = Int8(optimal_strategies[rand(rng, 1:num_optimal)])
 
     return (strategy, num_optimal, true)
+end
+
+"""Add `U[s, j]` for each remembered strategy `j` and each playable `s`."""
+function _add_remembered_payoffs!(
+        payoffs::Vector{Float64},
+        bank,
+        game::PairGame,
+        playable::Vector{Int},
+    )
+    n = size(game.U, 1)
+    n_observations = 0
+    for code in bank
+        # An unfilled slot is MEMORY_PLACEHOLDER, not an opponent strategy.
+        code == MEMORY_PLACEHOLDER && continue
+        j = Int(code)
+        if !(1 <= j <= n)
+            throw(ArgumentError("remembered strategy $j is outside 1:$n"))
+        end
+        for s in playable
+            payoffs[s] += game.U[s, j]
+        end
+        n_observations += 1
+    end
+    return n_observations
 end
 
 """
@@ -496,7 +504,7 @@ function run_simulation(
     memory = MemorySystem(config)
 
     # Pre-allocate working buffers (use max of both groups)
-    num_strategies_max = max(config.num_strategies_a, config.num_strategies_b)
+    num_strategies_max = config.num_strategies
     payoffs = zeros(Float64, num_strategies_max)
     optimal_strategies = Vector{Int}(undef, num_strategies_max)
 
@@ -554,6 +562,8 @@ end
     _record_observation!(mem, receiver_id, strategy, opponent_group, config)
 
 Write the opponent's strategy into the receiver's group memory and common memory.
+
+`strategy` is an index of `U`.
 """
 function _record_observation!(
         mem::MemorySystem,

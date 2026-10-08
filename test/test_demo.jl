@@ -21,7 +21,7 @@ end
         @test occursin("one group", title)
         @test config.group_a_ratio == 0.0
         @test config.group_a_size == 0
-        @test config.game.payoff_BB == two.game.payoff_BB
+        @test config.game.U == two.game.U
         @test config.num_agents == two.num_agents
         @test config.type_conditioning_ratio_a == two.type_conditioning_ratio_a
         @test config.type_conditioning_ratio_b == two.type_conditioning_ratio_b
@@ -48,16 +48,15 @@ end
         for (case, L) in expected
             title, config = _demo_setup(case)
             @test occursin("L=$(L)", title)
-            @test config.game.payoff_AA[1, 1] == L
-            @test config.game.payoff_AA[2, 2] == 5.0
-            @test config.game.payoff_AA[3, 1] == 10.0 - L
+            @test config.game.U[1, 1] == L
+            @test config.game.U[2, 2] == 5.0
+            @test config.game.U[3, 1] == 10.0 - L
             opts = _parse_demo_case([String(case)])
             @test opts.case === case
             @test !opts.trajectory_mode
         end
         _, reference = _demo_setup(:l45)
-        @test reference.game.strategy_labels_A == ["L", "M", "H"]
-        @test reference.game.strategy_labels_B == ["L", "M", "H"]
+        @test reference.game.labels == ["L", "M", "H"]
         @test reference.num_agents == 20
         @test reference.group_a_ratio == 0.3
         @test reference.memory_length_for_group_a == 10
@@ -166,7 +165,7 @@ end
         rec = ShareSeries(1, Random.Xoshiro(1))
         rec(1, mem, config, population)
         @test length(rec.steps) == 1
-        @test length(rec.group_a_against_group_a[1]) == config.num_strategies_a
+        @test length(rec.group_a_against_group_a[1]) == config.num_strategies
     end
 
     @testset "one-group trajectory" begin

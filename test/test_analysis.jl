@@ -71,6 +71,19 @@ end
         @test slot_counts.a_remembers_b_slot_count == [0, 0, 0]
         @test slot_counts.b_remembers_a_slot_count == [0, 0, 0]
         @test slot_counts.b_remembers_b_slot_count == [0, 2, 0]
+
+        wide = PairGame(["a", "b", "c", "d", "e"], ones(5, 5), 1:3, 4:5)
+        wide_config = SimConfig(
+            game = wide, num_agents = 2, group_a_ratio = 0.5,
+            memory_length_for_group_a = 1, memory_length_for_group_b = 1,
+        )
+        wide_mem = MemorySystem(wide_config)
+        _record_observation!(wide_mem, 2, Int8(1), GROUP_A, wide_config)
+        wide_counts = count_final_strategies(wide_mem, wide_config)
+        @test wide_counts.b_remembers_a_slot_count == [1, 0, 0, 0, 0]
+        _record_observation!(wide_mem, 1, Int8(4), GROUP_B, wide_config)
+        wide_counts = count_final_strategies(wide_mem, wide_config)
+        @test wide_counts.a_remembers_b_slot_count == [0, 0, 0, 1, 0]
     end
 
     @testset "run_batch" begin
@@ -176,7 +189,7 @@ end
         from_memory = compute_payoff_outcome(
             counts.b_remembers_a_slot_count,
             counts.a_remembers_b_slot_count,
-            config.game.payoff_AB,
+            config.game.U,
         )
         # B remembers A playing L (35 slots). A remembers B playing H (15 slots).
         @test from_memory.payoff_A ≈ 2.0 atol = 0.001
@@ -202,7 +215,7 @@ end
         end
         shares = sample_strategy_shares(memory, config, population, Random.Xoshiro(1); step = 1)
         @test shares.group_a_against_group_a ≈ [0.0, 0.0, 1.0]
-        @test length(shares.group_a_against_group_b) == config.num_strategies_a
+        @test length(shares.group_a_against_group_b) == config.num_strategies
         repeated = sample_strategy_shares(memory, config, population, Random.Xoshiro(1); step = 1)
         @test shares.group_b_against_group_a == repeated.group_b_against_group_a
 
@@ -215,7 +228,7 @@ end
         )
         @test isempty(one_shares.group_a_against_group_a)
         @test isempty(one_shares.group_a_against_group_b)
-        @test length(one_shares.group_b_against_group_b) == one_group.num_strategies_b
+        @test length(one_shares.group_b_against_group_b) == one_group.num_strategies
 
         empty_override = SimConfig(
             game = TEST_GAME, num_agents = 4, group_a_ratio = 0.5,

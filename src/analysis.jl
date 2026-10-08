@@ -26,11 +26,11 @@ stopping step.
 Returns memory-slot counts. `a_remembers_b_slot_count[i]` is how many of
 A's memory slots hold B strategy `i`. The other fields are
 `<observer>_remembers_<actor>_slot_count`. Each vector has length
-`max(num_strategies_a, num_strategies_b)`. Repeated observations in different
+`num_strategies`. Index `i` is strategy `i`. Repeated observations in different
 slots are counted separately. Common memory is not counted.
 """
 function count_final_strategies(memory::MemorySystem, config::SimConfig)
-    num_strategies_max = max(config.num_strategies_a, config.num_strategies_b)
+    num_strategies_max = config.num_strategies
 
     aa_counts = zeros(Int, num_strategies_max)
     ab_counts = zeros(Int, num_strategies_max)
@@ -63,10 +63,8 @@ end
 Payoffs under independent strategy shares derived from two count vectors.
 
 The first vector weights A strategies and the second weights B strategies. This
-function applies to a shared square cross-group payoff matrix `U`: if A uses
-strategy `i` and B uses strategy `j`, their payoffs are `U[i, j]` and `U[j, i]`.
-It therefore does not represent a general `PairGame` with distinct
-`payoff_AB` and `payoff_BA` matrices.
+function applies to the shared square payoff `U`: if A uses strategy `i` and B
+uses strategy `j`, their payoffs are `U[i, j]` and `U[j, i]`.
 
 `payoff_gap` is the relative absolute difference
 `|payoff_A - payoff_B| / (|payoff_A| + |payoff_B|)`. The `advantage = :fair`
@@ -188,13 +186,13 @@ function sample_strategy_shares(
         rng::AbstractRNG = Random.default_rng();
         step::Int,
     )
-    num_strategies_max = max(config.num_strategies_a, config.num_strategies_b)
-    payoffs = zeros(Float64, num_strategies_max)
-    optimal_strategies = Vector{Int}(undef, num_strategies_max)
-    counts_a_a = zeros(Int, config.num_strategies_a)
-    counts_a_b = zeros(Int, config.num_strategies_a)
-    counts_b_a = zeros(Int, config.num_strategies_b)
-    counts_b_b = zeros(Int, config.num_strategies_b)
+    num_strategies = config.num_strategies
+    payoffs = zeros(Float64, num_strategies)
+    optimal_strategies = Vector{Int}(undef, num_strategies)
+    counts_a_a = zeros(Int, num_strategies)
+    counts_a_b = zeros(Int, num_strategies)
+    counts_b_a = zeros(Int, num_strategies)
+    counts_b_b = zeros(Int, num_strategies)
 
     n_a = length(population.group_a_indices)
     n_b = length(population.group_b_indices)
@@ -225,9 +223,9 @@ function sample_strategy_shares(
     end
 
     return (
-        group_a_against_group_a = _share_copy(counts_a_a, n_a, config.num_strategies_a),
-        group_a_against_group_b = _share_copy(counts_a_b, n_a > 0 && n_b > 0 ? n_a : 0, config.num_strategies_a),
-        group_b_against_group_a = _share_copy(counts_b_a, n_a > 0 && n_b > 0 ? n_b : 0, config.num_strategies_b),
-        group_b_against_group_b = _share_copy(counts_b_b, n_b, config.num_strategies_b),
+        group_a_against_group_a = _share_copy(counts_a_a, n_a, num_strategies),
+        group_a_against_group_b = _share_copy(counts_a_b, n_a > 0 && n_b > 0 ? n_a : 0, num_strategies),
+        group_b_against_group_a = _share_copy(counts_b_a, n_a > 0 && n_b > 0 ? n_b : 0, num_strategies),
+        group_b_against_group_b = _share_copy(counts_b_b, n_b, num_strategies),
     )
 end

@@ -65,10 +65,6 @@ using GameTCAgentsBR
 
 game = PairGame(
     ["L", "M", "H"],
-    ["L", "M", "H"],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
 )
 
@@ -108,10 +104,6 @@ using Random
 
 game = PairGame(
     ["L", "M", "H"],
-    ["L", "M", "H"],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
 )
 
@@ -141,6 +133,38 @@ run_simulation(config; seed = config.random_seed, track_callback = record, track
 for sample in path
     println(sample.step, " ", sample.group_a_against_group_b)
 end
+```
+
+### Game definitions
+
+The examples above give both groups every strategy. `U[i, j]` is the payoff of strategy `i` against strategy `j`. The names are the order of the result vectors. They are not used when a strategy is chosen.
+
+B can be kept from playing H. `U` stays `3 × 3`.
+
+```julia
+U = [
+    4.5 4.5 4.5
+    5.0 5.0 0.0
+    5.5 0.0 0.0
+]
+game = PairGame(["L", "M", "H"], U, [1, 2, 3], [1, 2])
+```
+
+A can play strategies 1, 2, and 3 while B plays 4 and 5. `U` is then `5 × 5`: the upper left is A against A, the upper right is A against B, the lower left is B against A, and the lower right is B against B.
+
+```julia
+game = PairGame(
+    ["a", "b", "c", "d", "e"],
+    [
+        1.0 0.0 0.0 0.2 0.2
+        0.0 1.0 0.0 0.2 0.2
+        0.0 0.0 1.0 0.2 0.2
+        0.2 0.2 0.2 1.0 0.0
+        0.2 0.2 0.2 0.0 1.0
+    ],
+    1:3,
+    4:5,
+)
 ```
 
 ## `demo/`
@@ -182,10 +206,6 @@ end
 
 game = PairGame(
     ["L", "M", "H"],
-    ["L", "M", "H"],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
 )
 
@@ -248,10 +268,6 @@ end
 
 game = PairGame(
     ["L", "M", "H"],
-    ["L", "M", "H"],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
 )
 
@@ -320,10 +336,6 @@ end
 
 game = PairGame(
     ["L", "M", "H"],
-    ["L", "M", "H"],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
 )
 
@@ -387,10 +399,6 @@ end
 
 game = PairGame(
     ["L", "M", "H"],
-    ["L", "M", "H"],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
 )
 

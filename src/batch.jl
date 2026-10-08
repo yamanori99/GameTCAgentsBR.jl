@@ -85,7 +85,7 @@ function run_batch(
         on_trial_complete::Union{Function, Nothing} = nothing
     )
     seeds = _derive_trial_seeds(config, trial_seeds)
-    num_strategies_max = max(config.num_strategies_a, config.num_strategies_b)
+    num_strategies_max = config.num_strategies
     outcomes_aa = zeros(Int, num_strategies_max)
     outcomes_ab = zeros(Int, num_strategies_max)
     outcomes_ba = zeros(Int, num_strategies_max)
