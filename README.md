@@ -150,7 +150,7 @@ U = [
 game = PairGame(["L", "M", "H"], U, [1, 2, 3], [1, 2])
 ```
 
-A can play strategies 1, 2, and 3 while B plays 4 and 5. `U` is then `5 × 5`: the upper left is A against A, the upper right is A against B, the lower left is B against A, and the lower right is B against B.
+A plays strategy indices 1, 2, and 3, and B plays indices 4 and 5. These numbers are not a count of strategies. `U` is then `5 × 5`: the upper left is A against A, the upper right is A against B, the lower left is B against A, and the lower right is B against B.
 
 ```julia
 game = PairGame(
@@ -169,7 +169,7 @@ game = PairGame(
 
 ## `demo/`
 
-The two examples above can also be run with `demo/run.jl`.
+The two Nash demand runs above the game definitions can also be run with `demo/run.jl`.
 
 `julia --project=demo demo/run.jl` runs the default case `l45 counts`.
 
@@ -311,16 +311,16 @@ import GameTCAgentsBR: override_strategies
 struct PlayMWhenEmpty <: StrategyOverride end
 
 function row_has_observation(memory, agent, opponent)
-    row = if agent.uses_type_conditioning
-        if opponent.group == GROUP_A
+    if agent.uses_type_conditioning
+        row = if opponent.group == GROUP_A
             memory.group_a_memories[agent.id, :]
         else
             memory.group_b_memories[agent.id, :]
         end
-    else
-        memory.common_memories[agent.id, :]
+        return any(!=(Int8(-1)), row)
     end
-    return any(!=(Int8(-1)), row)
+    return any(!=(Int8(-1)), memory.group_a_memories[agent.id, :]) ||
+        any(!=(Int8(-1)), memory.group_b_memories[agent.id, :])
 end
 
 function override_strategies(::PlayMWhenEmpty, strategy1, strategy2, agent1, agent2,
@@ -374,16 +374,16 @@ import GameTCAgentsBR: override_strategies
 struct PlayMWhenEmpty <: StrategyOverride end
 
 function row_has_observation(memory, agent, opponent)
-    row = if agent.uses_type_conditioning
-        if opponent.group == GROUP_A
+    if agent.uses_type_conditioning
+        row = if opponent.group == GROUP_A
             memory.group_a_memories[agent.id, :]
         else
             memory.group_b_memories[agent.id, :]
         end
-    else
-        memory.common_memories[agent.id, :]
+        return any(!=(Int8(-1)), row)
     end
-    return any(!=(Int8(-1)), row)
+    return any(!=(Int8(-1)), memory.group_a_memories[agent.id, :]) ||
+        any(!=(Int8(-1)), memory.group_b_memories[agent.id, :])
 end
 
 function override_strategies(::PlayMWhenEmpty, strategy1, strategy2, agent1, agent2,

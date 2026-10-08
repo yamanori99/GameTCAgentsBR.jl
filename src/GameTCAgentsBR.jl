@@ -3,10 +3,10 @@ GameTCAgentsBR.jl — simulation of pairwise play with group-specific strategy m
 
 GameTCAgentsBR.jl simulates repeated pairwise play in a finite population.
 Each agent records opponent strategies in a finite memory and can keep a separate
-memory for each opponent group. A run takes a payoff and a configuration and
-returns the memories after the trials. Other pairwise payoffs can be supplied.
-The simulator was designed to configure the Nash demand game, and the demos
-and tests use that game.
+memory for each opponent group. A run takes a `PairGame` and a `SimConfig`.
+`run_simulation` returns the memory at the stopping step. `run_batch` returns
+trial counts. The simulator was designed to configure the Nash demand game, and
+the demos and tests use that game.
 
 # Extended From
 

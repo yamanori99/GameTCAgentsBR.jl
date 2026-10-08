@@ -150,7 +150,7 @@ U = [
 game = PairGame(["L", "M", "H"], U, [1, 2, 3], [1, 2])
 ```
 
-A が 1、2、3 を出し、B が 4 と 5 を出す設定ができる。`U` は `5 × 5` で、左上は A 同士、右上は A が B に向ける点数、左下は B が A に向ける点数、右下は B 同士である。
+A が出すのは戦略の添字 1、2、3 で、B が出すのは添字 4 と 5 である。これは戦略の個数ではない。`U` は `5 × 5` で、左上は A 同士、右上は A が B に向ける点数、左下は B が A に向ける点数、右下は B 同士である。
 
 ```julia
 game = PairGame(
@@ -169,7 +169,7 @@ game = PairGame(
 
 ## `demo/`
 
-以上2つの設定については、`demo/run.jl` で実行することも出来る。
+ゲームの定義より上にある、ナッシュ要求の 2 つの実行は、`demo/run.jl` でも実行できる。
 
 `julia --project=demo demo/run.jl` は、既定の `l45 counts` を実行する。
 
@@ -311,16 +311,16 @@ import GameTCAgentsBR: override_strategies
 struct PlayMWhenEmpty <: StrategyOverride end
 
 function row_has_observation(memory, agent, opponent)
-    row = if agent.uses_type_conditioning
-        if opponent.group == GROUP_A
+    if agent.uses_type_conditioning
+        row = if opponent.group == GROUP_A
             memory.group_a_memories[agent.id, :]
         else
             memory.group_b_memories[agent.id, :]
         end
-    else
-        memory.common_memories[agent.id, :]
+        return any(!=(Int8(-1)), row)
     end
-    return any(!=(Int8(-1)), row)
+    return any(!=(Int8(-1)), memory.group_a_memories[agent.id, :]) ||
+        any(!=(Int8(-1)), memory.group_b_memories[agent.id, :])
 end
 
 function override_strategies(::PlayMWhenEmpty, strategy1, strategy2, agent1, agent2,
@@ -374,16 +374,16 @@ import GameTCAgentsBR: override_strategies
 struct PlayMWhenEmpty <: StrategyOverride end
 
 function row_has_observation(memory, agent, opponent)
-    row = if agent.uses_type_conditioning
-        if opponent.group == GROUP_A
+    if agent.uses_type_conditioning
+        row = if opponent.group == GROUP_A
             memory.group_a_memories[agent.id, :]
         else
             memory.group_b_memories[agent.id, :]
         end
-    else
-        memory.common_memories[agent.id, :]
+        return any(!=(Int8(-1)), row)
     end
-    return any(!=(Int8(-1)), row)
+    return any(!=(Int8(-1)), memory.group_a_memories[agent.id, :]) ||
+        any(!=(Int8(-1)), memory.group_b_memories[agent.id, :])
 end
 
 function override_strategies(::PlayMWhenEmpty, strategy1, strategy2, agent1, agent2,

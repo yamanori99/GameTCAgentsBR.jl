@@ -224,7 +224,7 @@ Multi-type memory storage for agent strategy observations.
 Each agent keeps three memories:
 1. `group_a_memories`: Strategies observed from Group A
 2. `group_b_memories`: Strategies observed from Group B
-3. `common_memories`: All observed strategies; agents without type conditioning read this memory
+3. `common_memories`: All observed strategies. Strategy choice does not read this memory
 
 # Fields
 - `group_a_memories::Matrix{Int8}`: [agent, slot] → strategy

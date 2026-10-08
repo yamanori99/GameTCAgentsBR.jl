@@ -27,14 +27,14 @@ function match_agents(rule::FixedPair, _step, _memory, _population, _config)
 end
 
 function _memory_observed(memory, agent, opponent)
-    row = if agent.uses_type_conditioning
-        opponent.group == GROUP_A ?
+    if agent.uses_type_conditioning
+        row = opponent.group == GROUP_A ?
             memory.group_a_memories[agent.id, :] :
             memory.group_b_memories[agent.id, :]
-    else
-        memory.common_memories[agent.id, :]
+        return any(!=(MEMORY_PLACEHOLDER), row)
     end
-    return any(!=(MEMORY_PLACEHOLDER), row)
+    return any(!=(MEMORY_PLACEHOLDER), memory.group_a_memories[agent.id, :]) ||
+        any(!=(MEMORY_PLACEHOLDER), memory.group_b_memories[agent.id, :])
 end
 
 function override_strategies(
