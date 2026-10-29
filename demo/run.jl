@@ -423,9 +423,9 @@ function effective_traj_interval(cfg::SimConfig, samples::Int)
     return max(1, cld(cfg.steps_per_initialization, samples))
 end
 
-mutable struct ShareSeries
+mutable struct ShareSeries{R <: AbstractRNG}
     interval::Int
-    rng::AbstractRNG
+    rng::R
     steps::Vector{Int}
     group_a_against_group_a::Vector{Vector{Float64}}
     group_a_against_group_b::Vector{Vector{Float64}}
@@ -434,9 +434,9 @@ mutable struct ShareSeries
     payoff_gap::Vector{Float64}
 end
 
-function ShareSeries(interval::Int, rng::AbstractRNG)
+function ShareSeries(interval::Int, rng::R) where {R <: AbstractRNG}
     interval > 0 || throw(ArgumentError("interval must be positive"))
-    return ShareSeries(
+    return ShareSeries{R}(
         interval,
         rng,
         Int[],

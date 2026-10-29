@@ -1,6 +1,4 @@
-"""
-Tests for strategy counts, batch trials, payoffs, and strategy shares.
-"""
+# Tests for strategy counts, batch trials, payoffs, and strategy shares.
 
 using GameTCAgentsBR: GROUP_A, _push_memory!, _record_observation!
 

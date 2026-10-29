@@ -1,8 +1,5 @@
-"""
-GameTCAgentsBR.jl model tests.
-
-Run with: julia --project=. -e 'using Pkg; Pkg.test()'
-"""
+# GameTCAgentsBR.jl model tests.
+# Run with: julia --project=. -e 'using Pkg; Pkg.test()'
 
 using GameTCAgentsBR
 using Random

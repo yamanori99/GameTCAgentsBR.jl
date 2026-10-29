@@ -68,7 +68,7 @@ Simulation configuration. `game` is a required `PairGame`.
 `type_conditioning_ratio_a` and `type_conditioning_ratio_b` are probabilities in
 `[0, 1]`. Both default to `1.0`. Group A may be empty (`group_a_ratio` 0).
 """
-@kwdef struct SimConfig
+@kwdef struct SimConfig{O <: StrategyOverride, M <: MatchingRule}
     game::PairGame
     num_agents::Int = 200
     group_a_ratio::Float64 = 0.3
@@ -77,15 +77,15 @@ Simulation configuration. `game` is a required `PairGame`.
     memory_length_for_group_a::Int = 10
     memory_length_for_group_b::Int = 10
     common_memory_length::Int = 20
-    strategy_override::StrategyOverride = NoOverride()
-    matching::MatchingRule = OnePair()
+    strategy_override::O = NoOverride()
+    matching::M = OnePair()
     num_initializations::Int = 10000
     steps_per_initialization::Int = 200000
     random_seed::Union{Int, Nothing} = nothing
     group_a_size::Int = round(Int, num_agents * group_a_ratio)
     num_strategies::Int = size(game.U, 1)
 
-    function SimConfig(
+    function SimConfig{O, M}(
             game::PairGame,
             num_agents::Int,
             group_a_ratio::Float64,
@@ -94,14 +94,14 @@ Simulation configuration. `game` is a required `PairGame`.
             memory_length_for_group_a::Int,
             memory_length_for_group_b::Int,
             common_memory_length::Int,
-            strategy_override::StrategyOverride,
-            matching::MatchingRule,
+            strategy_override::O,
+            matching::M,
             num_initializations::Int,
             steps_per_initialization::Int,
             random_seed::Union{Int, Nothing},
             group_a_size::Int,
             num_strategies::Int,
-        )
+        ) where {O <: StrategyOverride, M <: MatchingRule}
         @argcheck 0.0 <= type_conditioning_ratio_a <= 1.0 &&
             0.0 <=
             type_conditioning_ratio_b <=
@@ -115,7 +115,7 @@ Simulation configuration. `game` is a required `PairGame`.
         @argcheck steps_per_initialization > 0 "steps_per_initialization must be positive"
         @argcheck group_a_size <
             num_agents "Invalid group_a_ratio: results in empty Group B"
-        return new(
+        return new{O, M}(
             game,
             num_agents,
             group_a_ratio,
@@ -133,6 +133,42 @@ Simulation configuration. `game` is a required `PairGame`.
             num_strategies,
         )
     end
+end
+
+function SimConfig(
+        game::PairGame,
+        num_agents::Int,
+        group_a_ratio::Float64,
+        type_conditioning_ratio_a::Float64,
+        type_conditioning_ratio_b::Float64,
+        memory_length_for_group_a::Int,
+        memory_length_for_group_b::Int,
+        common_memory_length::Int,
+        strategy_override::O,
+        matching::M,
+        num_initializations::Int,
+        steps_per_initialization::Int,
+        random_seed::Union{Int, Nothing},
+        group_a_size::Int,
+        num_strategies::Int,
+    ) where {O <: StrategyOverride, M <: MatchingRule}
+    return SimConfig{O, M}(
+        game,
+        num_agents,
+        group_a_ratio,
+        type_conditioning_ratio_a,
+        type_conditioning_ratio_b,
+        memory_length_for_group_a,
+        memory_length_for_group_b,
+        common_memory_length,
+        strategy_override,
+        matching,
+        num_initializations,
+        steps_per_initialization,
+        random_seed,
+        group_a_size,
+        num_strategies,
+    )
 end
 
 """
@@ -460,6 +496,14 @@ function match_agents(
     return [(a1, a2)]
 end
 
+# Slot counts from `count_final_strategies` (one `Vector{Int}` per observer/actor pair).
+const StrategySlotCounts = @NamedTuple{
+    a_remembers_a_slot_count::Vector{Int},
+    a_remembers_b_slot_count::Vector{Int},
+    b_remembers_a_slot_count::Vector{Int},
+    b_remembers_b_slot_count::Vector{Int},
+}
+
 """
     TrialResult
 
@@ -472,7 +516,7 @@ One finished trial.
 """
 struct TrialResult
     seed::Int
-    counts::NamedTuple
+    counts::StrategySlotCounts
     memory::MemorySystem
 end
 
