@@ -1,6 +1,4 @@
-"""
-Tests for model types and one trial.
-"""
+# Tests for model types and one trial.
 
 using GameTCAgentsBR:
     GROUP_A,
@@ -46,6 +44,10 @@ end
             @test config.common_memory_length == 20
             @test config.strategy_override isa NoOverride
             @test config.matching isa OnePair
+            @test isconcretetype(typeof(config))
+            @test isconcretetype(fieldtype(typeof(config), :strategy_override))
+            @test isconcretetype(fieldtype(typeof(config), :matching))
+            @test isconcretetype(fieldtype(TrialResult, :counts))
             @test config.num_initializations == 10000
             @test config.steps_per_initialization == 200000
             @test config.random_seed === nothing

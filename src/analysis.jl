@@ -18,7 +18,7 @@ function _accumulate_strategy_counts!(counts::Vector{Int}, mem_view, num_strateg
 end
 
 """
-    count_final_strategies(memory::MemorySystem, config::SimConfig) -> NamedTuple
+    count_final_strategies(memory::MemorySystem, config::SimConfig) -> StrategySlotCounts
 
 Count strategy observations stored in opponent-group-specific memory at the
 stopping step.
