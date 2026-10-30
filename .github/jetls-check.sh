@@ -41,7 +41,8 @@ fi
 # Pkg Apps shims pin a Julia binary. juliaup upgrades leave that path missing.
 # The shim honors JULIA_APPS_JULIA_CMD; default to PATH `julia`.
 if [[ -z "${JULIA_APPS_JULIA_CMD:-}" ]]; then
-    export JULIA_APPS_JULIA_CMD="$(command -v julia)"
+    JULIA_APPS_JULIA_CMD="$(command -v julia)"
+    export JULIA_APPS_JULIA_CMD
 fi
 
 # Match DistSSHKit / aviatesk/JETLS.jl check@release: do not pass `--threads=auto`.

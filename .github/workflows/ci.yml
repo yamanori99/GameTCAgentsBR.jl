@@ -1,7 +1,8 @@
 name: CI
 
-# Julia 1.13 only. Registry-tree installs the package from a bare
-# file:// repository, then runs Pkg.test outside the checkout.
+# Pkg.test 1.13 on Ubuntu (coverage), macOS, and Windows.
+# 1.14-pre and nightly are Ubuntu only and continue-on-error.
+# Registry install: Pkg.add the head commit the way General does, then Pkg.test.
 on:
   push:
     branches:
@@ -18,63 +19,120 @@ permissions:
 
 jobs:
   test:
-    name: Pkg.test - 1.13 - ubuntu-latest
-    runs-on: ubuntu-latest
+    name: Pkg.test (1.13, ${{ matrix.os }}, ${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     permissions:
       contents: read
       id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: x64
+            coverage: true
+          - os: macos-latest
+            arch: aarch64
+            coverage: false
+          - os: windows-latest
+            arch: x64
+            coverage: false
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: julia-actions/setup-julia@v3
+      - uses: julia-actions/setup-julia@da908477b5db94c10ffce8cfea9f2b3b9d5db687 # v3.0.3
         with:
           version: '1.13'
-      - uses: julia-actions/cache@v3
+      - uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
         with:
           cache-scratchspaces: false
-      - uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-runtest@v1
+          delete-old-caches: false
+      - uses: julia-actions/julia-buildpkg@e3eb439fad4f9aba7da2667e7510e4a46ebc46e1 # v1.7.0
+      - uses: julia-actions/julia-runtest@6e050c8013b833b1195105ff2fce9cd802f53271 # v1.12.0
         with:
-          coverage: true
-      - uses: julia-actions/julia-processcoverage@v1
+          coverage: ${{ matrix.coverage }}
+      - uses: julia-actions/julia-processcoverage@03114f09f119417c3242a9fb6e0b722676aedf38 # v1.2.2
+        if: matrix.coverage
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+        if: matrix.coverage
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: lcov.info
           use_oidc: true
           fail_ci_if_error: true
 
-  test-registry-tree:
-    name: Pkg.test - registry tree - ubuntu-latest
+  test-1-14-pre:
+    name: Pkg.test (1.14-pre, ubuntu-latest, x64)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    continue-on-error: true
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: julia-actions/setup-julia@v3
+      - uses: julia-actions/setup-julia@da908477b5db94c10ffce8cfea9f2b3b9d5db687 # v3.0.3
         with:
-          version: '1.13'
-      - uses: julia-actions/cache@v3
+          version: '~1.14.0-0'
+      - uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
         with:
           cache-scratchspaces: false
-      - uses: ./.github/actions/registry-tree-test
+          delete-old-caches: false
+      - uses: julia-actions/julia-buildpkg@e3eb439fad4f9aba7da2667e7510e4a46ebc46e1 # v1.7.0
+      - uses: julia-actions/julia-runtest@6e050c8013b833b1195105ff2fce9cd802f53271 # v1.12.0
+
+  test-nightly:
+    name: Pkg.test (nightly, ubuntu-latest, x64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@da908477b5db94c10ffce8cfea9f2b3b9d5db687 # v3.0.3
+        with:
+          version: nightly
+      - uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
+        with:
+          cache-scratchspaces: false
+          delete-old-caches: false
+      - uses: julia-actions/julia-buildpkg@e3eb439fad4f9aba7da2667e7510e4a46ebc46e1 # v1.7.0
+      - uses: julia-actions/julia-runtest@6e050c8013b833b1195105ff2fce9cd802f53271 # v1.12.0
+
+  registry-install:
+    name: Registry install (1.13, ubuntu-latest, x64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: julia-actions/setup-julia@da908477b5db94c10ffce8cfea9f2b3b9d5db687 # v3.0.3
+        with:
+          version: '1.13'
+      - uses: ./.github/actions/registry-install
+        with:
+          package: GameTCAgentsBR
+          rev: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
   aqua:
-    name: Aqua - 1.13 - ubuntu-latest
+    name: Aqua (1.13, ubuntu-latest, x64)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: julia-actions/setup-julia@v3
+      - uses: julia-actions/setup-julia@da908477b5db94c10ffce8cfea9f2b3b9d5db687 # v3.0.3
         with:
           version: '1.13'
-      - uses: julia-actions/cache@v3
+      - uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
         with:
           cache-scratchspaces: false
+          delete-old-caches: false
       - name: Aqua.test_all (latest Aqua)
         run: ./.github/aqua-check.sh

@@ -1,0 +1,7 @@
+rules:
+  artipacked:
+    disable: true
+  self-repository:
+    disable: true
+  dependabot-cooldown:
+    disable: true
