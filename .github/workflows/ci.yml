@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   test:
-    name: Pkg.test - 1.13 - ubuntu-latest
+    name: GameTCAgentsBR (1.13, ubuntu-latest, x64)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -48,7 +48,7 @@ jobs:
           fail_ci_if_error: true
 
   test-1-14-pre:
-    name: Pkg.test - 1.14-pre - ubuntu-latest
+    name: GameTCAgentsBR (1.14-pre, ubuntu-latest, x64)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     continue-on-error: true
@@ -66,7 +66,7 @@ jobs:
       - uses: julia-actions/julia-runtest@v1
 
   test-nightly:
-    name: Pkg.test - nightly - ubuntu-latest
+    name: GameTCAgentsBR (nightly, ubuntu-latest, x64)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     continue-on-error: true
@@ -84,7 +84,7 @@ jobs:
       - uses: julia-actions/julia-runtest@v1
 
   registry-install:
-    name: Registry install - 1.13 - ubuntu-latest
+    name: Registry install (1.13, ubuntu-latest, x64)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -105,7 +105,7 @@ jobs:
           rev: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
   aqua:
-    name: Aqua - 1.13 - ubuntu-latest
+    name: Aqua (1.13, ubuntu-latest, x64)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
