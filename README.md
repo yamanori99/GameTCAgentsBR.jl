@@ -32,7 +32,7 @@ run_batch (N trials)                                      src/batch.jl
         │               [1] Pair ──► [2] Strategy ──► [3] Update ──► [4] track_callback
         │         │
         │         ▼
-        │         count_final_strategies(memory)  ──► memory-slot counts  src/analysis.jl
+        │         count_final_strategies(memory, config)  ──► memory-slot counts  src/analysis.jl
         │
         ▼
     aggregate  ──►  number of trials with each strategy present
@@ -56,9 +56,10 @@ julia --project=.
 
 Run the following in the REPL. Run each code block in a new Julia session.
 
-### Strategy frequency at the endpoint
+### Trial counts at the stopping step
 
 See `demo/run.jl` for concrete parameter settings.
+One trial can count more than one strategy.
 
 ```julia
 using GameTCAgentsBR
@@ -169,7 +170,7 @@ game = PairGame(
 
 ## `demo/`
 
-The two Nash demand runs above the game definitions can also be run with `demo/run.jl`.
+`demo/run.jl` uses this payoff with 20 agents, 5000 steps, and no seed.
 
 `julia --project=demo demo/run.jl` runs the default case `l45 counts`.
 
@@ -296,7 +297,7 @@ println(results.b_remembers_b_trial_count)
 
 ## Change an agent's behavior rule
 
-Best response is the base. `strategy_override` can replace the strategy that is then played.
+Best response to a nonempty memory; otherwise a uniform draw. `strategy_override` can replace the strategy that is then played.
 
 ### Example `PlayMWhenEmpty`
 

@@ -1,6 +1,6 @@
 # Payoff, configuration, population, memory, strategy selection, and one trial.
 
-# Population indices for the two-group game
+# Group ids for the two-group game
 const GROUP_A = Int8(1)
 const GROUP_B = Int8(2)
 
@@ -66,7 +66,7 @@ struct OnePair <: MatchingRule end
 
 Simulation configuration. `game` is a required `PairGame`.
 `type_conditioning_ratio_a` and `type_conditioning_ratio_b` are probabilities in
-`[0, 1]`. Both default to `1.0`. Group A may be empty (`group_a_ratio` 0).
+`[0, 1]`. Both default to `1.0`. `group_a_ratio` is in `[0, 0.5]` (0 leaves Group A empty).
 """
 @kwdef struct SimConfig{O <: StrategyOverride, M <: MatchingRule}
     game::PairGame
@@ -197,8 +197,8 @@ One member of the population.
 
 # Fields
 - `id::Int`: Unique agent identifier (1 to num_agents)
-- `group::Int8`: Population index (`GROUP_A` or `GROUP_B`)
-- `uses_type_conditioning::Bool`: Whether agent uses type-conditional strategies
+- `group::Int8`: Group id (`GROUP_A` or `GROUP_B`)
+- `uses_type_conditioning::Bool`: Reads only the opponent's group memory
 """
 struct Agent
     id::Int
@@ -349,7 +349,7 @@ Returns `(strategy, num_optimal, has_memory)` where:
 
 `payoffs` and `optimal_strategies` must be at least as long as `num_strategies`.
 `rng` supplies the random choice among tied or uninformed strategies. It defaults
-to the global RNG.
+to the task-local RNG.
 
 # Strategy Selection Rules
 1. If the relevant memory has observations:
@@ -497,11 +497,14 @@ function match_agents(
 end
 
 # Slot counts from `count_final_strategies` (one `Vector{Int}` per observer/actor pair).
-const StrategySlotCounts = @NamedTuple{
-    a_remembers_a_slot_count::Vector{Int},
-    a_remembers_b_slot_count::Vector{Int},
-    b_remembers_a_slot_count::Vector{Int},
-    b_remembers_b_slot_count::Vector{Int},
+const StrategySlotCounts = NamedTuple{
+    (
+        :a_remembers_a_slot_count,
+        :a_remembers_b_slot_count,
+        :b_remembers_a_slot_count,
+        :b_remembers_b_slot_count,
+    ),
+    Tuple{Vector{Int}, Vector{Int}, Vector{Int}, Vector{Int}},
 }
 
 """
