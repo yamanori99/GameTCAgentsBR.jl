@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   jetls:
-    name: JETLS - 1.13 - ubuntu-latest
+    name: JETLS (1.13, ubuntu-latest, x64)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
