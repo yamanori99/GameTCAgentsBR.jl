@@ -76,11 +76,19 @@ end
             @test_throws ArgumentError SimConfig(game = TEST_GAME, steps_per_initialization = 0)
             @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 10, group_a_ratio = 0.51)
             @test_throws ArgumentError SimConfig(game = TEST_GAME, num_strategies = 2)
+            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_strategies = 4)
             @test_throws ArgumentError SimConfig(
                 game = TEST_GAME, num_agents = 10, group_a_ratio = 0.3, group_a_size = -1
             )
             @test_throws ArgumentError SimConfig(
                 game = TEST_GAME, num_agents = 10, group_a_ratio = 0.3, group_a_size = 4
+            )
+            @test SimConfig(
+                game = TEST_GAME, num_agents = 10, group_a_ratio = 0.3,
+                group_a_size = 3, num_strategies = 3,
+            ).group_a_size == 3
+            @test_throws ArgumentError SimConfig(
+                game = TEST_GAME, num_agents = 5, group_a_ratio = 0.5, group_a_size = 3
             )
 
             config0 = SimConfig(game = TEST_GAME, num_agents = 10, group_a_ratio = 0.0)
@@ -89,6 +97,8 @@ end
 
             config_half = SimConfig(game = TEST_GAME, num_agents = 100, group_a_ratio = 0.5)
             @test config_half.group_a_size == 50
+            config_tie = SimConfig(game = TEST_GAME, num_agents = 5, group_a_ratio = 0.5)
+            @test config_tie.group_a_size == 2
         end
 
         @testset "Payoff matrix sizes" begin

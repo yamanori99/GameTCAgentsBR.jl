@@ -70,9 +70,9 @@ Simulation configuration. `game` is a required `PairGame`.
 `type_conditioning_ratio_a` and `type_conditioning_ratio_b` are probabilities in
 `[0, 1]`. Both default to `1.0`. `group_a_ratio` is in `[0, 0.5]` (0 leaves Group A empty).
 `num_agents` must be at least 2. `group_a_size` is derived as
-`round(Int, num_agents * group_a_ratio)` and must be at least 0.
-`num_strategies` must equal `size(game.U, 1)`. A keyword that disagrees with
-either derived value raises `ArgumentError`.
+`round(Int, num_agents * group_a_ratio)` (ties round to even) and must be at
+least 0. `num_strategies` must equal `size(game.U, 1)`. A keyword that
+disagrees with either derived value raises `ArgumentError`.
 """
 @kwdef struct SimConfig{O <: StrategyOverride, M <: MatchingRule}
     game::PairGame
@@ -122,6 +122,7 @@ either derived value raises `ArgumentError`.
         @argcheck group_a_size >= 0 "group_a_size must be non-negative"
         @argcheck group_a_size ==
             _group_a_size(num_agents, group_a_ratio) "group_a_size must equal round(Int, num_agents * group_a_ratio)"
+        # Unreachable while group_a_ratio <= 0.5. Kept if that upper bound is relaxed.
         @argcheck group_a_size <
             num_agents "Invalid group_a_ratio: results in empty Group B"
         @argcheck num_strategies ==
