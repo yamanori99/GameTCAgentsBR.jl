@@ -1,6 +1,6 @@
 name: CI
 
-# GameTCAgentsBR 1.13 on Ubuntu (coverage), macOS, and Windows.
+# Pkg.test 1.13 on Ubuntu (coverage), macOS, and Windows.
 # 1.14-pre and nightly are Ubuntu only and continue-on-error.
 # Registry install: Pkg.add the head commit the way General does, then Pkg.test.
 on:
@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   test:
-    name: GameTCAgentsBR (1.13, ${{ matrix.os }}, ${{ matrix.arch }})
+    name: Pkg.test (1.13, ${{ matrix.os }}, ${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     permissions:
@@ -64,7 +64,7 @@ jobs:
           fail_ci_if_error: true
 
   test-1-14-pre:
-    name: GameTCAgentsBR (1.14-pre, ubuntu-latest, x64)
+    name: Pkg.test (1.14-pre, ubuntu-latest, x64)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     continue-on-error: true
@@ -83,7 +83,7 @@ jobs:
       - uses: julia-actions/julia-runtest@6e050c8013b833b1195105ff2fce9cd802f53271 # v1.12.0
 
   test-nightly:
-    name: GameTCAgentsBR (nightly, ubuntu-latest, x64)
+    name: Pkg.test (nightly, ubuntu-latest, x64)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     continue-on-error: true
