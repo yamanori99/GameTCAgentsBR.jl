@@ -71,8 +71,9 @@ Simulation configuration. `game` is a required `PairGame`.
 `[0, 1]`. Both default to `1.0`. `group_a_ratio` is in `[0, 0.5]` (0 leaves Group A empty).
 `num_agents` must be at least 2. `group_a_size` is derived as
 `round(Int, num_agents * group_a_ratio)` (ties round to even) and must be at
-least 0. `num_strategies` must equal `size(game.U, 1)`. A keyword that
-disagrees with either derived value raises `ArgumentError`.
+least 0. A derived size larger than Group B raises `ArgumentError`.
+`num_strategies` must equal `size(game.U, 1)`. A keyword that disagrees with
+either derived value raises `ArgumentError`.
 """
 @kwdef struct SimConfig{O <: StrategyOverride, M <: MatchingRule}
     game::PairGame
@@ -119,9 +120,12 @@ disagrees with either derived value raises `ArgumentError`.
         @argcheck common_memory_length > 0 "common_memory_length must be positive"
         @argcheck num_initializations > 0 "num_initializations must be positive"
         @argcheck steps_per_initialization > 0 "steps_per_initialization must be positive"
+        # Unreachable while group_a_ratio >= 0 and the size equals the derived value.
         @argcheck group_a_size >= 0 "group_a_size must be non-negative"
         @argcheck group_a_size ==
             _group_a_size(num_agents, group_a_ratio) "group_a_size must equal round(Int, num_agents * group_a_ratio)"
+        @argcheck 2 * group_a_size <=
+            num_agents "Group A must not be larger than Group B"
         # Unreachable while group_a_ratio <= 0.5. Kept if that upper bound is relaxed.
         @argcheck group_a_size <
             num_agents "Invalid group_a_ratio: results in empty Group B"

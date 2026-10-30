@@ -90,6 +90,8 @@ end
             @test_throws ArgumentError SimConfig(
                 game = TEST_GAME, num_agents = 5, group_a_ratio = 0.5, group_a_size = 3
             )
+            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 7, group_a_ratio = 0.5)
+            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 3, group_a_ratio = 0.5)
 
             config0 = SimConfig(game = TEST_GAME, num_agents = 10, group_a_ratio = 0.0)
             @test config0.group_a_size == 0
