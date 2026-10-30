@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://json.schemastore.org/dependabot-2.0.json
+version: 2
+updates:
+  # Workflows pin `uses:` to a commit SHA (pinact). Dependabot bumps the SHA
+  # and the version comment. Julia packages are not a Dependabot ecosystem.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      timezone: Asia/Tokyo
+    groups:
+      github-actions:
+        patterns:
+          - "*"
