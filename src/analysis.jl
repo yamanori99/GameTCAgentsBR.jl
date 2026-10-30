@@ -67,9 +67,8 @@ function applies to the shared square payoff `U`: if A uses strategy `i` and B
 uses strategy `j`, their payoffs are `U[i, j]` and `U[j, i]`.
 
 `payoff_gap` is the relative absolute difference
-`|payoff_A - payoff_B| / (|payoff_A| + |payoff_B|)`. The `advantage = :fair`
-label means that the computed payoffs differ by less than the numerical
-threshold used below; it is not a normative judgment.
+`|payoff_A - payoff_B| / (|payoff_A| + |payoff_B|)`. `advantage = :fair` when
+`abs(payoff_A - payoff_B) < 0.01 * max(payoff_A, payoff_B, 0.01)`.
 """
 function compute_payoff_outcome(
         a_strategy_counts::AbstractVector{<:Integer},

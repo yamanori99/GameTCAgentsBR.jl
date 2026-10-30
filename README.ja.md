@@ -31,7 +31,7 @@ run_batch (N 試行)                                        src/batch.jl
         │               [1] Pair ──► [2] Strategy ──► [3] Update ──► [4] track_callback
         │         │
         │         ▼
-        │         count_final_strategies(memory)  ──► 停止時に各戦略が入っている記憶の数  src/analysis.jl
+        │         count_final_strategies(memory, config)  ──► 記憶スロット数  src/analysis.jl
         │
         ▼
     集計  ──►  各戦略が記憶に現れた試行数
@@ -55,9 +55,10 @@ julia --project=.
 
 REPL 上で以下を実行する。各コードブロックは、新しい Julia セッションで実行する。
 
-### 終点の戦略出現率
+### 停止ステップの試行数
 
 `demo/run.jl` も具体的なパラメータ設定例が載っているので、参考にしてほしい。
+1試行が複数の戦略に数えられることがある。
 
 ```julia
 using GameTCAgentsBR
@@ -169,7 +170,7 @@ game = PairGame(
 
 ## `demo/`
 
-ゲームの定義より上にある、ナッシュ要求の 2 つの実行は、`demo/run.jl` でも実行できる。
+`demo/run.jl` は、この利得でエージェント20、5000ステップ、seedなしである。
 
 `julia --project=demo demo/run.jl` は、既定の `l45 counts` を実行する。
 
@@ -296,7 +297,7 @@ println(results.b_remembers_b_trial_count)
 
 ## エージェントの行動ルールを操作する
 
-本モデルは、最良反応がベースである。そのあとで出す戦略は、`strategy_override` で意思決定ルールを変更、操作することもできる。
+空でない記憶への最良反応であり、空なら一様に引く。そのあとで出す戦略は、`strategy_override` で意思決定ルールを変更、操作することもできる。
 
 ### 例 `PlayMWhenEmpty`
 
