@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: registry-tree-test
+description: Pkg.test GameTCAgentsBR from a Registry-style bare file:// tree
+
+runs:
+  using: composite
+  steps:
+    - name: Pkg.test on a Registry-style tree
+      shell: bash
+      run: |
+        set -euo pipefail
+        command -v git >/dev/null
+        WORKDIR="$(mktemp -d "${HOME}/gtc.XXXXXX")"
+        BARE="$(mktemp -d "${HOME}/gtc.git.XXXXXX")"
+        rsync -a \
+          --exclude .git \
+          --exclude Manifest.toml \
+          ./ "${WORKDIR}/"
+        git init --bare -q "${BARE}"
+        git --git-dir="${BARE}" --work-tree="${WORKDIR}" add -A
+        git --git-dir="${BARE}" --work-tree="${WORKDIR}" \
+          -c user.email=ci@gametcnashagentsbr -c user.name=ci commit -q -m tree
+        julia -e '
+          using Pkg
+          Pkg.activate(temp=true)
+          Pkg.add(; url=ARGS[1])
+          using GameTCAgentsBR
+          Pkg.test("GameTCAgentsBR")
+        ' "file://${BARE}"
