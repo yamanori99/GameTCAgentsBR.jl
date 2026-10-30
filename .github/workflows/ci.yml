@@ -1,7 +1,8 @@
 name: CI
 
-# Julia 1.13 only. Registry-tree installs the package from a bare
-# file:// repository, then runs Pkg.test outside the checkout.
+# Checkout Pkg.test: 1.13 (coverage), 1.14-pre, nightly.
+# Registry install: Pkg.add the head commit the way General does, then Pkg.test.
+# 1.14-pre and nightly are continue-on-error.
 on:
   push:
     branches:
@@ -46,21 +47,62 @@ jobs:
           use_oidc: true
           fail_ci_if_error: true
 
-  test-registry-tree:
-    name: Pkg.test - registry tree - ubuntu-latest
+  test-1-14-pre:
+    name: Pkg.test - 1.14-pre - ubuntu-latest
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: julia-actions/setup-julia@v3
         with:
+          version: '~1.14.0-0'
+      - uses: julia-actions/cache@v3
+        with:
+          cache-scratchspaces: false
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+
+  test-nightly:
+    name: Pkg.test - nightly - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: nightly
+      - uses: julia-actions/cache@v3
+        with:
+          cache-scratchspaces: false
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+
+  registry-install:
+    name: Registry install - 1.13 - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: julia-actions/setup-julia@v3
+        with:
           version: '1.13'
       - uses: julia-actions/cache@v3
         with:
           cache-scratchspaces: false
-      - uses: ./.github/actions/registry-tree-test
+      - uses: ./.github/actions/registry-install
+        with:
+          package: GameTCAgentsBR
+          rev: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
   aqua:
     name: Aqua - 1.13 - ubuntu-latest
