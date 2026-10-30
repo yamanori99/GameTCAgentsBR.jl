@@ -72,10 +72,10 @@ Simulation configuration. `game` is a required `PairGame`.
 `[0, 1]`. Both default to `1.0`. `group_a_ratio` is in `[0, 0.5]` (0 leaves Group A empty).
 `num_agents` must be at least 2. `group_a_size` is
 `min(round(Int, num_agents * group_a_ratio), num_agents ÷ 2)` (ties round to
-even) and must be at least 0. Group A is never larger than Group B. When
-`group_a_ratio` is `0.5` and `num_agents` is odd, the groups cannot be equal
-and a warning is emitted. `num_strategies` must equal `size(game.U, 1)`.
-A keyword that disagrees with either derived value raises `ArgumentError`.
+even). Group A is never larger than Group B. When `group_a_ratio` is `0.5`
+and `num_agents` is odd, the groups cannot be equal and a warning is emitted.
+`num_strategies` must equal `size(game.U, 1)`. A keyword that disagrees with
+either derived value raises `ArgumentError`.
 """
 @kwdef struct SimConfig{O <: StrategyOverride, M <: MatchingRule}
     game::PairGame
