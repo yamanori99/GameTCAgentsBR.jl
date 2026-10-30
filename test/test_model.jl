@@ -64,6 +64,7 @@ end
 
         @testset "Validation" begin
             @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 0)
+            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 1)
             @test_throws ArgumentError SimConfig(game = TEST_GAME, group_a_ratio = -0.1)
             @test_throws ArgumentError SimConfig(game = TEST_GAME, group_a_ratio = 0.6)
             @test_throws ArgumentError SimConfig(game = TEST_GAME, type_conditioning_ratio_a = -0.1)
@@ -74,13 +75,40 @@ end
             @test_throws ArgumentError SimConfig(game = TEST_GAME, num_initializations = 0)
             @test_throws ArgumentError SimConfig(game = TEST_GAME, steps_per_initialization = 0)
             @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 10, group_a_ratio = 0.51)
+            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_strategies = 2)
+            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_strategies = 4)
+            @test_throws ArgumentError SimConfig(
+                game = TEST_GAME, num_agents = 10, group_a_ratio = 0.3, group_a_size = -1
+            )
+            @test_throws ArgumentError SimConfig(
+                game = TEST_GAME, num_agents = 10, group_a_ratio = 0.3, group_a_size = 4
+            )
+            @test SimConfig(
+                game = TEST_GAME, num_agents = 10, group_a_ratio = 0.3,
+                group_a_size = 3, num_strategies = 3,
+            ).group_a_size == 3
+            @test_throws ArgumentError SimConfig(
+                game = TEST_GAME, num_agents = 5, group_a_ratio = 0.5, group_a_size = 3
+            )
 
             config0 = SimConfig(game = TEST_GAME, num_agents = 10, group_a_ratio = 0.0)
             @test config0.group_a_size == 0
             @test all(==(GROUP_B), assign_groups(config0))
 
-            config_half = SimConfig(game = TEST_GAME, num_agents = 100, group_a_ratio = 0.5)
+            config_half = @test_logs SimConfig(game = TEST_GAME, num_agents = 100, group_a_ratio = 0.5)
             @test config_half.group_a_size == 50
+            config_odd = @test_logs (:warn, r"cannot be equal") SimConfig(
+                game = TEST_GAME, num_agents = 7, group_a_ratio = 0.5,
+            )
+            @test config_odd.group_a_size == 3
+            config_tie = @test_logs (:warn, r"cannot be equal") SimConfig(
+                game = TEST_GAME, num_agents = 5, group_a_ratio = 0.5,
+            )
+            @test config_tie.group_a_size == 2
+            config_three = @test_logs (:warn, r"cannot be equal") SimConfig(
+                game = TEST_GAME, num_agents = 3, group_a_ratio = 0.5,
+            )
+            @test config_three.group_a_size == 1
         end
 
         @testset "Payoff matrix sizes" begin

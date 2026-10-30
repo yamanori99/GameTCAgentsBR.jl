@@ -61,12 +61,21 @@ abstract type MatchingRule end
 """One uniformly chosen pair of distinct agents per step."""
 struct OnePair <: MatchingRule end
 
+_group_a_size(num_agents, group_a_ratio) =
+    min(round(Int, num_agents * group_a_ratio), num_agents ÷ 2)
+
 """
     SimConfig(; game, ...)
 
 Simulation configuration. `game` is a required `PairGame`.
 `type_conditioning_ratio_a` and `type_conditioning_ratio_b` are probabilities in
 `[0, 1]`. Both default to `1.0`. `group_a_ratio` is in `[0, 0.5]` (0 leaves Group A empty).
+`num_agents` must be at least 2. `group_a_size` is
+`min(round(Int, num_agents * group_a_ratio), num_agents ÷ 2)` (ties round to
+even). Group A is never larger than Group B. When `group_a_ratio` is `0.5`
+and `num_agents` is odd, the groups cannot be equal and a warning is emitted.
+`num_strategies` must equal `size(game.U, 1)`. A keyword that disagrees with
+either derived value raises `ArgumentError`.
 """
 @kwdef struct SimConfig{O <: StrategyOverride, M <: MatchingRule}
     game::PairGame
@@ -82,7 +91,7 @@ Simulation configuration. `game` is a required `PairGame`.
     num_initializations::Int = 10000
     steps_per_initialization::Int = 200000
     random_seed::Union{Int, Nothing} = nothing
-    group_a_size::Int = round(Int, num_agents * group_a_ratio)
+    group_a_size::Int = _group_a_size(num_agents, group_a_ratio)
     num_strategies::Int = size(game.U, 1)
 
     function SimConfig{O, M}(
@@ -106,15 +115,29 @@ Simulation configuration. `game` is a required `PairGame`.
             0.0 <=
             type_conditioning_ratio_b <=
             1.0 "type_conditioning_ratio must be in [0,1]"
-        @argcheck num_agents > 0 "num_agents must be positive"
+        @argcheck num_agents >= 2 "num_agents must be at least 2"
         @argcheck 0.0 <= group_a_ratio <= 0.5 "group_a_ratio must be in [0, 0.5]"
         @argcheck memory_length_for_group_a > 0 "memory_length_for_group_a must be positive"
         @argcheck memory_length_for_group_b > 0 "memory_length_for_group_b must be positive"
         @argcheck common_memory_length > 0 "common_memory_length must be positive"
         @argcheck num_initializations > 0 "num_initializations must be positive"
         @argcheck steps_per_initialization > 0 "steps_per_initialization must be positive"
+        # Unreachable while group_a_ratio >= 0 and the size equals the derived value.
+        @argcheck group_a_size >= 0 "group_a_size must be non-negative"
+        @argcheck group_a_size ==
+            _group_a_size(num_agents, group_a_ratio) "group_a_size must equal min(round(Int, num_agents * group_a_ratio), num_agents ÷ 2)"
+        # Unreachable while the size equals the derived value (capped at n ÷ 2).
+        @argcheck 2 * group_a_size <=
+            num_agents "Group A must not be larger than Group B"
+        # Unreachable while group_a_ratio <= 0.5. Kept if that upper bound is relaxed.
         @argcheck group_a_size <
             num_agents "Invalid group_a_ratio: results in empty Group B"
+        @argcheck num_strategies ==
+            size(game.U, 1) "num_strategies must equal size(game.U, 1)"
+        if group_a_ratio == 0.5 && isodd(num_agents)
+            n_b = num_agents - group_a_size
+            @warn "group_a_ratio = 0.5 with odd num_agents: groups cannot be equal" num_agents group_a_size n_b maxlog = 1
+        end
         return new{O, M}(
             game,
             num_agents,
