@@ -64,6 +64,7 @@ end
 
         @testset "Validation" begin
             @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 0)
+            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 1)
             @test_throws ArgumentError SimConfig(game = TEST_GAME, group_a_ratio = -0.1)
             @test_throws ArgumentError SimConfig(game = TEST_GAME, group_a_ratio = 0.6)
             @test_throws ArgumentError SimConfig(game = TEST_GAME, type_conditioning_ratio_a = -0.1)
@@ -74,6 +75,13 @@ end
             @test_throws ArgumentError SimConfig(game = TEST_GAME, num_initializations = 0)
             @test_throws ArgumentError SimConfig(game = TEST_GAME, steps_per_initialization = 0)
             @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 10, group_a_ratio = 0.51)
+            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_strategies = 2)
+            @test_throws ArgumentError SimConfig(
+                game = TEST_GAME, num_agents = 10, group_a_ratio = 0.3, group_a_size = -1
+            )
+            @test_throws ArgumentError SimConfig(
+                game = TEST_GAME, num_agents = 10, group_a_ratio = 0.3, group_a_size = 4
+            )
 
             config0 = SimConfig(game = TEST_GAME, num_agents = 10, group_a_ratio = 0.0)
             @test config0.group_a_size == 0

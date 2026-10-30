@@ -68,7 +68,6 @@ println(results.b_remembers_b_trial_count)
 module GameTCAgentsBR
 
 using ArgCheck
-using Printf
 using Random
 
 include("model.jl")
