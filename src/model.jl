@@ -497,11 +497,14 @@ function match_agents(
 end
 
 # Slot counts from `count_final_strategies` (one `Vector{Int}` per observer/actor pair).
-const StrategySlotCounts = @NamedTuple{
-    a_remembers_a_slot_count::Vector{Int},
-    a_remembers_b_slot_count::Vector{Int},
-    b_remembers_a_slot_count::Vector{Int},
-    b_remembers_b_slot_count::Vector{Int},
+const StrategySlotCounts = NamedTuple{
+    (
+        :a_remembers_a_slot_count,
+        :a_remembers_b_slot_count,
+        :b_remembers_a_slot_count,
+        :b_remembers_b_slot_count,
+    ),
+    Tuple{Vector{Int}, Vector{Int}, Vector{Int}, Vector{Int}},
 }
 
 """
