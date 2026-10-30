@@ -90,17 +90,21 @@ end
             @test_throws ArgumentError SimConfig(
                 game = TEST_GAME, num_agents = 5, group_a_ratio = 0.5, group_a_size = 3
             )
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 7, group_a_ratio = 0.5)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 3, group_a_ratio = 0.5)
 
             config0 = SimConfig(game = TEST_GAME, num_agents = 10, group_a_ratio = 0.0)
             @test config0.group_a_size == 0
             @test all(==(GROUP_B), assign_groups(config0))
 
-            config_half = SimConfig(game = TEST_GAME, num_agents = 100, group_a_ratio = 0.5)
+            config_half = @test_logs SimConfig(game = TEST_GAME, num_agents = 100, group_a_ratio = 0.5)
             @test config_half.group_a_size == 50
+            config_odd = @test_logs (:warn, r"cannot be equal") SimConfig(
+                game = TEST_GAME, num_agents = 7, group_a_ratio = 0.5,
+            )
+            @test config_odd.group_a_size == 3
             config_tie = SimConfig(game = TEST_GAME, num_agents = 5, group_a_ratio = 0.5)
             @test config_tie.group_a_size == 2
+            config_three = SimConfig(game = TEST_GAME, num_agents = 3, group_a_ratio = 0.5)
+            @test config_three.group_a_size == 1
         end
 
         @testset "Payoff matrix sizes" begin
