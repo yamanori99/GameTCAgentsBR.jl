@@ -1,14 +1,37 @@
-id	status	juliaFile	statement
-assign-groups-prefix-a	proven	src/model.jl	The first group_a_size agents are assigned GROUP_A.
-assign-groups-suffix-b	proven	src/model.jl	Agents after group_a_size are assigned GROUP_B.
-memory-mod1-julia	proven	src/model.jl	mod1 matches Julia wrap (e.g. mod1(4,3)=1, mod1(3,3)=3).
-match-one-pair-distinct	proven	src/model.jl	OnePair always matches two distinct agents when n≥2.
-match-one-pair-in-range	proven	src/model.jl	Returned indices lie in 1:n for valid random inputs.
-payoff-equal-length-no-throw	refuted	src/analysis.jl	Equal-length count vectors never throw on a square payoff matrix.
-payoff-3x3-ok	proven	src/analysis.jl	Length-3 counts on a 3×3 matrix succeed when dimensions match size(U,1).
-payoff-zero-unknown	proven	src/analysis.jl	Zero count totals yield advantage :unknown and NaN payoffs.
-remembered-invalid-index	proven	src/model.jl	Strategy code 0 raises ArgumentError.
-run-simulation-preserves-caller-rng	refuted	src/model.jl	run_simulation does not alter the task-local RNG stream after return.
-override-unplayable-recorded	refuted	src/model.jl	Recorded strategies always belong to playable_A/playable_B.
-common-memory-unused	todo	src/model.jl	Common memory is not read when choosing a strategy.
-group-a-size-formula	todo	src/model.jl	group_a_size equals min(round(Int,n*ratio), n÷2) for documented inputs.
+id	status	juliaFile	note
+assign-groups-prefix-a	proven	src/model.jl	-
+assign-groups-suffix-b	proven	src/model.jl	-
+memory-mod1-julia	proven	src/model.jl	-
+match-one-pair-distinct	proven	src/model.jl	-
+match-one-pair-in-range	proven	src/model.jl	-
+payoff-equal-length-no-throw	refuted	src/analysis.jl	PR #15 ArgumentError
+payoff-3x3-ok	proven	src/analysis.jl	-
+payoff-zero-unknown	proven	src/analysis.jl	-
+remembered-invalid-index	proven	src/model.jl	-
+run-simulation-preserves-caller-rng	refuted	src/model.jl	-
+override-unplayable-recorded	refuted	src/model.jl	-
+common-memory-unused	proven	src/model.jl	-
+memory-reads-group-rows	proven	src/model.jl	-
+group-a-size-doc	proven	src/model.jl	-
+group-a-size-simconfig	proven	src/model.jl	-
+group-a-size-halfup-equals-julia	refuted	src/model.jl	rounding-mode / Float
+group-a-size-float-rational	refuted	src/model.jl	607 grid mismatches
+group-a-size-bounded	proven	src/model.jl	-
+tie-eps-includes-near-best	proven	src/model.jl	-
+tie-eps-equals-exact	refuted	src/model.jl	intentional superset
+exact-argmax-subset-eps	proven	src/model.jl	-
+dyadic-eps-agreement	proven	src/model.jl	-
+int8-accepts-128	refuted	src/model.jl	PR #15 n≤127
+pairgame-128-runtime	refuted	src/model.jl	PR #15 n≤127
+pairgame-square-matrix	proven	src/model.jl	-
+pairgame-playable-range	proven	src/model.jl	-
+no-override-identity	proven	src/model.jl	-
+derive-trial-seeds-length	proven	src/batch.jl	-
+batch-track-callback	proven	src/batch.jl	-
+run-batch-trial-count	proven	src/batch.jl	-
+accumulate-trial-counts	proven	src/batch.jl	-
+empty-memory-uniform	proven	src/model.jl	-
+record-writes-common	proven	src/model.jl	-
+accumulate-skips-placeholder	proven	src/analysis.jl	-
+count-final-four-keys	proven	src/analysis.jl	-
+share-copy-zero-agents	proven	src/analysis.jl	-

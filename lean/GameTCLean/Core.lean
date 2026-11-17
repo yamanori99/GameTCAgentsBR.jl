@@ -53,6 +53,9 @@ def MEMORY_PLACEHOLDER : I8 := ⟨-1, by omega⟩
 
 def PAYOFF_TIE_EPS : Float := 1e-10
 
+/-- Intended max strategies on `main` once memories use `Int8` codes (PR #15 enforces at construction). -/
+def MAX_NUM_STRATEGIES : Nat := 127
+
 /-- Abstract advantage label returned by `compute_payoff_outcome`. -/
 inductive Advantage where
   | fair | a_advantage | b_advantage | unknown

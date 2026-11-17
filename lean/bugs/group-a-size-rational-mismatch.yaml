@@ -1,0 +1,12 @@
+id: group-a-size-rational-mismatch
+julia_file: src/model.jl
+julia_functions:
+  - _group_a_size
+  - SimConfig
+severity: moderate
+research_impact: >
+  On k/1000 ratio grid, Float64 round(Int, n*ratio) disagrees with round(Int, Rational(n*k,1000))
+  for 607 of 5×10⁶ cases with n≤10⁴ (example n=75,k=140: sizes 11 vs 10). Can change group assignment
+  when expectations assume exact decimals; default configs (e.g. 0.3) should be checked per study.
+pr15_note: unchanged.
+reproducer: lean/repro/group-a-size-rational-mismatch.jl

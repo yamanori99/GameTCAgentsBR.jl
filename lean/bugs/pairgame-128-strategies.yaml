@@ -1,0 +1,13 @@
+id: pairgame-128-strategies
+julia_file: src/model.jl
+julia_functions:
+  - PairGame
+  - determine_strategy
+  - _record_observation!
+severity: critical
+research_impact: >
+  Construction accepts 128 strategies, but runtime memory/strategy paths use Int8
+  and throw InexactError when strategy code 128 is recorded. Breaks any 128×128 game
+  configuration; not fixed on formalization baseline (PR #15 limits n≤127 at construction).
+pr15_note: PairGame inner constructor rejects num_strategies > 127.
+reproducer: lean/repro/pairgame-128-strategies.jl
