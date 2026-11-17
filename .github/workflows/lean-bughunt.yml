@@ -1,0 +1,80 @@
+name: Lean bug hunt
+
+# Formalization registry, Lean audit, and Julia reproducers (no gh-pages / PR comments).
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'lean/**'
+      - 'src/**'
+      - '.github/workflows/lean-bughunt.yml'
+  pull_request:
+    paths:
+      - 'lean/**'
+      - 'src/**'
+      - '.github/workflows/lean-bughunt.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+permissions:
+  contents: read
+
+jobs:
+  lean-audit:
+    name: Lean (lake build + audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: lean
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install elan
+        run: |
+          set -euo pipefail
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "${HOME}/.elan/bin" >> "${GITHUB_PATH}"
+      - name: Install toolchain from lean-toolchain
+        run: |
+          set -euo pipefail
+          toolchain="$(tr -d '[:space:]' < lean-toolchain)"
+          elan toolchain install "${toolchain}"
+          elan default "${toolchain}"
+      - name: lake build and audit
+        run: bash scripts/audit.sh
+
+  julia-repros:
+    name: Julia reproducers (1.13)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: lean-audit
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@da908477b5db94c10ffce8cfea9f2b3b9d5db687 # v3.0.3
+        with:
+          version: '1.13'
+      - uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
+        with:
+          cache-scratchspaces: false
+          delete-old-caches: false
+      - uses: julia-actions/julia-buildpkg@e3eb439fad4f9aba7da2667e7510e4a46ebc46e1 # v1.7.0
+      - name: Run reproducers and write job summary
+        env:
+          LEAN_BUG_HUNT_CI: '1'
+        run: julia --project=. lean/scripts/ci-repros-and-summary.jl
+      - name: Lean audit note in summary
+        run: |
+          {
+            echo ""
+            echo "### Lean audit"
+            echo ""
+            echo "Job **lean-audit** completed \`lake build\` and \`scripts/audit.sh\` on this commit."
+          } >> "${GITHUB_STEP_SUMMARY}"

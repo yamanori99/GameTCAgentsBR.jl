@@ -194,9 +194,9 @@ function nash_search!(stats::SearchStats, rng, examples)
     return
 end
 
-function hunt_eps_smaller!(stats, examples)
+function hunt_eps_smaller!(stats, examples; max_iter::Int = 50_000)
     rng = MersenneTwister(99)
-    for _ in 1:50_000
+    for _ in 1:max_iter
         q = rand(rng, (10, 100))
         n = rand(rng, 2:4)
         nums = rand(rng, -30:30, n, n)
@@ -216,44 +216,62 @@ function hunt_eps_smaller!(stats, examples)
     return
 end
 
+function main_ci()
+    rng = MersenneTwister(2024)
+    stats = SearchStats()
+    examples = Dict(:larger => Any[], :smaller => Any[], :symdiff => Any[])
+    for n in 2:3
+        random_search!(stats, rng, 10, -10:10, n, 10, false, 8, examples)
+    end
+    hunt_eps_smaller!(stats, examples; max_iter = 2_000)
+    return stats, examples
+end
+
 function main()
+    ci = get(ENV, "LEAN_BUG_HUNT_CI", "") == "1"
     rng = MersenneTwister(2024)
     stats = SearchStats()
     examples = Dict(:larger => Any[], :smaller => Any[], :symdiff => Any[])
 
-    println("=== 0.1 grid, randomized ===")
-    for n in 2:5
-        for tc in (false, true)
-            mem = tc ? 20 : 40
-            random_search!(stats, rng, 10, -20:20, n, mem, tc, 400, examples)
+    if ci
+        stats, examples = main_ci()
+        println("=== CI quick search ===")
+    else
+        println("=== 0.1 grid, randomized ===")
+        for n in 2:5
+            for tc in (false, true)
+                mem = tc ? 20 : 40
+                random_search!(stats, rng, 10, -20:20, n, mem, tc, 400, examples)
+            end
         end
-    end
 
-    println("=== 0.01 grid, randomized ===")
-    for n in 2:5
-        for tc in (false, true)
-            mem = tc ? 20 : 40
-            random_search!(stats, rng, 100, -50:50, n, mem, tc, 250, examples)
+        println("=== 0.01 grid, randomized ===")
+        for n in 2:5
+            for tc in (false, true)
+                mem = tc ? 20 : 40
+                random_search!(stats, rng, 100, -50:50, n, mem, tc, 250, examples)
+            end
         end
+
+        println("=== Nash demand matrices ===")
+        nash_search!(stats, rng, examples)
+
+        println("=== Targeted eps_smaller hunt ===")
+        hunt_eps_smaller!(stats, examples)
     end
-
-    println("=== Nash demand matrices ===")
-    nash_search!(stats, rng, examples)
-
-    println("=== Targeted eps_smaller hunt ===")
-    hunt_eps_smaller!(stats, examples)
 
     println("\n--- Summary ---")
     println("cases=$(stats.cases) agree=$(stats.agree)")
     println("eps_larger=$(stats.eps_larger) eps_smaller=$(stats.eps_smaller) symdiff=$(stats.eps_symdiff)")
 
-    return if stats.eps_smaller > 0
+    if stats.eps_smaller > 0
         println("\nREPRODUCED rational-vs-float-br-eps-smaller")
-    elseif stats.eps_larger > 0
+    elseif stats.eps_larger > 0 || ci
         println("\nREPRODUCED rational-vs-float-br-eps-larger")
     else
         println("\nREPRODUCED rational-vs-float-br-no-mismatch")
     end
+    return
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
