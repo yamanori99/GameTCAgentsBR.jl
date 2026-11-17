@@ -1,0 +1,36 @@
+id: run-simulation-preserves-caller-rng
+title: "run_simulation mutates the caller task-local RNG"
+priority: P2
+kind: wrong-result
+area: model
+files: [src/model.jl]
+functions: ["run_simulation(::SimConfig; ...)"]
+summary: |
+  Random.seed!(seed) inside run_simulation resets the global task-local RNG, so
+  random draws after the call diverge from a session that never ran the trial.
+likelihood: |
+  README tracking examples keep an external Xoshiro while also calling run_simulation;
+  unrelated rand() calls in the same session are affected.
+maybe_intended: |
+  Seeding may be intentional so the trial is reproducible; side effect on caller RNG
+  is not documented.
+reproducer: lean/repro/run-simulation-preserves-caller-rng.jl
+output:
+  release: |
+    REPRODUCED run-simulation-preserves-caller-rng
+reproduced: {release: true, nightly: true}
+expected: |
+  Trial uses its own RNG scope or restores the previous task-local state on exit.
+promised_by: |
+  Implicit expectation in README tracking snippet (external rng + run_simulation); src/model.jl:569-570
+cause: |
+  Random.seed!(seed) before the step loop; src/model.jl:569-570
+possible_fix: |
+  Use a local RNG passed into determine_strategy/match_agents, or save/restore default_rng state.
+duplicates:
+  issues: []
+  queries: ["run_simulation Random.seed", "task-local RNG"]
+lean:
+  property: GameTCLean.Proofs.runSimulationPreservesCallerRngProp
+  theorem: GameTCLean.Proofs.runSimulationPreservesCallerRng_refuted
+covers: []

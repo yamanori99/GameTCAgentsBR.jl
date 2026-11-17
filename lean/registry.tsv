@@ -1,0 +1,40 @@
+id	status	juliaFile	note
+assign-groups-prefix-a	proven	src/model.jl	-
+assign-groups-suffix-b	proven	src/model.jl	-
+memory-mod1-julia	proven	src/model.jl	-
+match-one-pair-distinct	proven	src/model.jl	-
+match-one-pair-in-range	proven	src/model.jl	-
+payoff-equal-length-no-throw	refuted	src/analysis.jl	PR #15 ArgumentError
+payoff-3x3-ok	proven	src/analysis.jl	-
+payoff-zero-unknown	proven	src/analysis.jl	-
+remembered-invalid-index	proven	src/model.jl	-
+run-simulation-preserves-caller-rng	refuted	src/model.jl	-
+override-unplayable-recorded	refuted	src/model.jl	-
+common-memory-unused	proven	src/model.jl	-
+memory-reads-group-rows	proven	src/model.jl	-
+group-a-size-doc	proven	src/model.jl	-
+group-a-size-simconfig	proven	src/model.jl	-
+group-a-size-halfup-equals-julia	refuted	src/model.jl	rounding-mode / Float
+group-a-size-float-rational	refuted	src/model.jl	607 grid mismatches
+group-a-size-bounded	proven	src/model.jl	-
+tie-eps-includes-near-best	proven	src/model.jl	-
+tie-eps-equals-exact-float	refuted	src/model.jl	float argmax superset
+float-eps-equals-rational-argmax	refuted	src/model.jl	41/1.84e7 search; Nash L=1.2 witness
+rational-argmax-no-eps-drop	proven	src/model.jl	0 eps_smaller in search
+mean-gap-beats-tie-eps	proven	src/model.jl	1/(qm)>1e-10 for qm≤4000
+exact-argmax-subset-eps	proven	src/model.jl	-
+dyadic-eps-agreement	proven	src/model.jl	-
+int8-accepts-128	refuted	src/model.jl	PR #15 n≤127
+pairgame-128-runtime	refuted	src/model.jl	PR #15 n≤127
+pairgame-square-matrix	proven	src/model.jl	-
+pairgame-playable-range	proven	src/model.jl	-
+no-override-identity	proven	src/model.jl	-
+derive-trial-seeds-length	proven	src/batch.jl	-
+batch-track-callback	proven	src/batch.jl	-
+run-batch-trial-count	proven	src/batch.jl	-
+accumulate-trial-counts	proven	src/batch.jl	-
+empty-memory-uniform	proven	src/model.jl	-
+record-writes-common	proven	src/model.jl	-
+accumulate-skips-placeholder	proven	src/analysis.jl	-
+count-final-four-keys	proven	src/analysis.jl	-
+share-copy-zero-agents	proven	src/analysis.jl	-

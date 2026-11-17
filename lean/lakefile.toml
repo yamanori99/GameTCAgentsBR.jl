@@ -1,0 +1,10 @@
+name = "GameTCLean"
+defaultTargets = ["GameTCLean"]
+
+[[lean_lib]]
+name = "GameTCLean"
+moreLeanArgs = ["-M4096"]
+
+[[lean_exe]]
+name = "gameratec-audit"
+root = "Audit"

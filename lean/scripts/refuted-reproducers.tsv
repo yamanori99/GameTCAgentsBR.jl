@@ -1,0 +1,9 @@
+registry_id	repro_basename	expected_reproduced
+payoff-equal-length-no-throw	payoff-equal-length-no-throw.jl	REPRODUCED payoff-equal-length-no-throw
+run-simulation-preserves-caller-rng	run-simulation-preserves-caller-rng.jl	REPRODUCED run-simulation-preserves-caller-rng
+override-unplayable-recorded	override-unplayable-recorded.jl	REPRODUCED override-unplayable-recorded
+group-a-size-halfup-equals-julia	group-a-size-float-mismatch.jl	REPRODUCED group-a-size-halfup-vs-julia
+group-a-size-float-rational	group-a-size-rational-mismatch.jl	REPRODUCED group-a-size-rational-mismatch
+tie-eps-equals-exact-float	tie-eps-widens-set.jl	REPRODUCED tie-eps-widens-set
+float-eps-equals-rational-argmax	rational-vs-float-br-minimal.jl	REPRODUCED rational-vs-float-br-eps-larger
+pairgame-128-runtime	pairgame-128-strategies.jl	REPRODUCED pairgame-128-strategies

@@ -1,0 +1,27 @@
+juliaFile	function	status	registry_ids
+src/model.jl	_group_a_size	modelled	group-a-size-formula,pairgame-group-a-size-matches
+src/model.jl	PairGame (inner)	modelled	pairgame-square-matrix,pairgame-strategy-limit-todo
+src/model.jl	PairGame (outer)	modelled	pairgame-coerce-matrix
+src/model.jl	PairGame(U)	modelled	pairgame-matrix-only
+src/model.jl	SimConfig (inner)	modelled	simconfig-derived-group-a-size
+src/model.jl	SimConfig (outer)	modelled	simconfig-kwdef-bridge
+src/model.jl	assign_groups	modelled	assign-groups-prefix-a,assign-groups-suffix-b
+src/model.jl	AgentPopulation	modelled	agent-population-size
+src/model.jl	MemorySystem	modelled	memory-initial-placeholder
+src/model.jl	_push_memory!	modelled	memory-mod1-julia,memory-ring-four-writes
+src/model.jl	determine_strategy	modelled	determine-empty-uniform,eps-superset-exact,tie-eps-can-widen
+src/model.jl	_add_remembered_payoffs!	modelled	remembered-invalid-index,remembered-skips-placeholder
+src/model.jl	override_strategies (NoOverride)	modelled	no-override-identity
+src/model.jl	match_agents (OnePair)	modelled	match-one-pair-distinct,match-one-pair-in-range
+src/model.jl	run_simulation	modelled	run-simulation-preserves-caller-rng
+src/model.jl	_record_observation!	modelled	record-writes-three-banks,common-memory-unused
+src/batch.jl	_derive_trial_seeds	modelled	derive-trial-seeds-length
+src/batch.jl	_batch_track_callback	modelled	batch-track-callback-nothing
+src/batch.jl	_accumulate_trial_counts!	modelled	accumulate-trial-counts-monotone
+src/batch.jl	run_batch	modelled	run-batch-trial-count
+src/analysis.jl	_accumulate_strategy_counts!	modelled	accumulate-skips-placeholder
+src/analysis.jl	count_final_strategies	modelled	count-final-four-keys
+src/analysis.jl	compute_payoff_outcome	modelled	payoff-equal-length-no-throw,payoff-3x3-ok,payoff-zero-unknown,payoff-approx-zero-gap
+src/analysis.jl	_count_strategies_against!	modelled	count-strategies-clears
+src/analysis.jl	_share_copy	modelled	share-copy-zero-agents
+src/analysis.jl	sample_strategy_shares	modelled	sample-shares-representative

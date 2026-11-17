@@ -1,0 +1,35 @@
+id: payoff-equal-length-no-throw
+title: "compute_payoff_outcome BoundsError when count length != size(U,1)"
+priority: P1
+kind: crash
+area: analysis
+files: [src/analysis.jl]
+functions: ["compute_payoff_outcome(...)"]
+summary: |
+  Two count vectors of equal length 5 against a 3×3 matrix trigger BoundsError
+  because k = length(a) is used to index the matrix without checking size(U,1).
+likelihood: |
+  Callers who aggregate counts from a different number of strategies than the payoff
+  matrix (e.g. mis-sized vectors from external analysis) hit this at runtime.
+maybe_intended: ""
+reproducer: lean/repro/payoff-equal-length-no-throw.jl
+output:
+  release: |
+    BoundsError: attempt to access 3×3 Matrix{Float64} at index [1, 4]
+reproduced: {release: true, nightly: true}
+expected: |
+  ArgumentError or a documented requirement that lengths must equal size(U,1).
+promised_by: |
+  Docstring: "The first vector weights A strategies and the second weights B strategies."
+  src/analysis.jl:65-67
+cause: |
+  k = length(a_strategy_counts) with no check against size(payoff_matrix,1); src/analysis.jl:78,97-100
+possible_fix: |
+  Validate length(a) == size(matrix,1) == length(b) and throw ArgumentError with a clear message.
+duplicates:
+  issues: []
+  queries: ["compute_payoff_outcome BoundsError", "payoff_outcome length"]
+lean:
+  property: GameTCLean.Proofs.payoffEqualLengthNoThrowProp
+  theorem: GameTCLean.Proofs.payoffEqualLengthNoThrow_refuted
+covers: []

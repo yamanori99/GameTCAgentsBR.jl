@@ -1,0 +1,15 @@
+id: rational-vs-float-br-eps-larger
+julia_file: src/model.jl
+julia_functions:
+  - determine_strategy
+  - _add_remembered_payoffs!
+severity: low
+research_impact: >
+  Float64 means can include a suboptimal strategy in the PAYOFF_TIE_EPS tie set while exact
+  ℚ means (BigInt rationals from the same decimal matrix) identify a unique argmax. Example:
+  Nash demand L=1.2, playable {1,3}: float sets {1,3}, ℚ argmax {3}. Search: 41/1.84e7
+  randomized+Nash cases; 0 instances where float set was strictly smaller. Affects tie-breaking
+  only, not the rational best reply. Large memories / 0.01 grid can trigger; exact ties on ℚ grid
+  typically have gap >= 1/(q·m) >> 1e-10 (Lean witness m≤40).
+pr15_note: unchanged
+reproducer: lean/repro/rational-vs-float-br-minimal.jl
