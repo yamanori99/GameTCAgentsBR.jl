@@ -172,9 +172,9 @@ game = PairGame(
 
 `demo/run.jl` uses this payoff with 20 agents, 5000 steps, and no seed.
 
-`julia --project=demo demo/run.jl` runs the default case `l45 counts`.
+`julia --project=demo demo/run.jl` with no arguments prints usage to stderr and exits with code 2. Pass a case and mode, for example `julia --project=demo demo/run.jl l45 counts`.
 
-Positional args: `[case] [mode]`. Cases start with `l40one`, then `l40`, then `l05` … `l45` except `l40` is not repeated (Nash demand `L = 0.5 … 4.5`).
+Positional args: `[case] [mode]` (`l45` and `counts` apply when omitted). Cases start with `l40one`, then `l40`, then `l05` … `l45` except `l40` is not repeated (Nash demand `L = 0.5 … 4.5`). Trajectory mode is `traj` only (`trajectory` is rejected).
 
 `l40one` matches `l40` with `group_a_ratio = 0` (every agent is Group B).
 
