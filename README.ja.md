@@ -241,7 +241,7 @@ println(results.b_remembers_b_trial_count)
 
 ### 例2 `SameGroupBias`
 
-同じ集団と確率 0.8 で組にする。希望したプールが空のとき（例: `group_a_ratio = 0.0` で同集団優先）は、もう一方へ黙って切り替えず `ArgumentError` を出す。フォールバックが必要なら独自のルールで明示する。
+同じ集団と確率 0.8 で組にする。希望したプールが空のとき（例: `group_a_size = 0` で同集団優先）は、もう一方へ黙って切り替えず `ArgumentError` を出す。フォールバックが必要なら独自のルールで明示する。
 
 ```julia
 using GameTCAgentsBR
@@ -271,7 +271,7 @@ function match_agents(rule::SameGroupBias, _step, _memory, population, _config, 
     isempty(pool) &&
         throw(ArgumentError(
             "SameGroupBias: no partner in the $(prefer_same ? "same" : "other")-group pool; " *
-                "use group_a_ratio > 0 with both groups populated, or add an explicit fallback",
+                "use group_a_size > 0 with both groups populated, or add an explicit fallback",
         ))
     return [(a1, rand(rng, pool))]
 end

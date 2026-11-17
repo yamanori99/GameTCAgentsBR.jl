@@ -241,7 +241,7 @@ println(results.b_remembers_b_trial_count)
 
 ### Example 2 `SameGroupBias`
 
-Draw the partner from the same group with probability 0.8. If the preferred pool is empty (for example `group_a_ratio = 0.0` with same-group preference), the example raises `ArgumentError` instead of silently switching pools; implement an explicit fallback in your own rule if you need one.
+Draw the partner from the same group with probability 0.8. If the preferred pool is empty (for example `group_a_size = 0` with same-group preference), the example raises `ArgumentError` instead of silently switching pools; implement an explicit fallback in your own rule if you need one.
 
 ```julia
 using GameTCAgentsBR
@@ -271,7 +271,7 @@ function match_agents(rule::SameGroupBias, _step, _memory, population, _config, 
     isempty(pool) &&
         throw(ArgumentError(
             "SameGroupBias: no partner in the $(prefer_same ? "same" : "other")-group pool; " *
-                "use group_a_ratio > 0 with both groups populated, or add an explicit fallback",
+                "use group_a_size > 0 with both groups populated, or add an explicit fallback",
         ))
     return [(a1, rand(rng, pool))]
 end
