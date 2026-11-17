@@ -10,6 +10,7 @@ using GameTCAgentsBR:
     _record_observation!,
     assign_groups,
     determine_strategy
+using Random: MersenneTwister, Xoshiro
 
 function _average_config(U; play_a = 1:3, play_b = 1:3)
     game = PairGame(["a", "b", "c"], U, play_a, play_b)
@@ -163,12 +164,12 @@ end
         @test all(!a.uses_type_conditioning for a in by_group.agents if a.group == GROUP_B)
 
         # One uniform draw per agent. Seed 202 and p = 0.5 yield 520 successes.
-        Random.seed!(202)
         partial = AgentPopulation(
             SimConfig(
                 game = TEST_GAME, num_agents = 1000,
                 type_conditioning_ratio_a = 0.5, type_conditioning_ratio_b = 0.5,
-            )
+            ),
+            Xoshiro(202),
         )
         tc_count = count(a.uses_type_conditioning for a in partial.agents)
         @test tc_count == 520
@@ -305,8 +306,7 @@ end
         )
         @test (kept1, kept2) == (Int8(1), Int8(2))
 
-        Random.seed!(7)
-        pairs = match_agents(OnePair(), 1, mem, pop, config)
+        pairs = match_agents(OnePair(), 1, mem, pop, config, Xoshiro(7))
         @test length(pairs) == 1
         a1, a2 = only(pairs)
         @test a1 != a2
@@ -536,10 +536,34 @@ end
         @test result.memory isa MemorySystem
         @test haskey(result.counts, :a_remembers_b_slot_count)
 
-        again = run_simulation(config)
+        again = run_simulation(config; seed = 42)
         @test result.memory.group_a_memories == again.memory.group_a_memories
         @test result.memory.group_b_memories == again.memory.group_b_memories
         @test result.memory.common_memories == again.memory.common_memories
+
+        caller_rng = MersenneTwister(12345)
+        expected = [rand(caller_rng) for _ in 1:3]
+        repeat_rng = MersenneTwister(12345)
+        run_simulation(config; seed = 999)
+        actual = [rand(repeat_rng) for _ in 1:3]
+        @test expected == actual
+
+        override_ok = SimConfig(
+            game = TEST_GAME, num_agents = 4,
+            steps_per_initialization = 5,
+            strategy_override = PlayMWhenEmpty(),
+            random_seed = 1,
+        )
+        @test run_simulation(override_ok; seed = 1) isa TrialResult
+
+        limited = PairGame(["L", "M", "H"], TEST_DEMAND_PAYOFF, [1, 2, 3], [1, 2])
+        bad_override = SimConfig(
+            game = limited, num_agents = 4,
+            steps_per_initialization = 1,
+            strategy_override = ForceHForB(),
+            matching = FixedPair(2, 3),
+        )
+        @test_throws ArgumentError run_simulation(bad_override; seed = 1)
 
         callback_count = Ref(0)
         run_simulation(

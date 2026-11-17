@@ -195,8 +195,8 @@ import GameTCAgentsBR: match_agents
 
 struct Round <: MatchingRule end
 
-function match_agents(::Round, _step, _memory, population, _config)
-    order = randperm(length(population.agents))
+function match_agents(::Round, _step, _memory, population, _config, rng=Random.default_rng())
+    order = randperm(rng, length(population.agents))
     n_pairs = length(order) ÷ 2
     pairs = Vector{Tuple{Int,Int}}(undef, n_pairs)
     for i in 1:n_pairs
@@ -245,10 +245,10 @@ struct SameGroupBias <: MatchingRule
     probability::Float64
 end
 
-function match_agents(rule::SameGroupBias, _step, _memory, population, _config)
+function match_agents(rule::SameGroupBias, _step, _memory, population, _config, rng=Random.default_rng())
     agents = population.agents
     n = length(agents)
-    a1 = rand(1:n)
+    a1 = rand(rng, 1:n)
     same = Int[]
     other = Int[]
     for i in 1:n
@@ -259,12 +259,12 @@ function match_agents(rule::SameGroupBias, _step, _memory, population, _config)
             push!(other, i)
         end
     end
-    prefer_same = rand() < rule.probability
+    prefer_same = rand(rng) < rule.probability
     pool = prefer_same ? same : other
     if isempty(pool)
         pool = prefer_same ? other : same
     end
-    return [(a1, rand(pool))]
+    return [(a1, rand(rng, pool))]
 end
 
 game = PairGame(
@@ -302,6 +302,8 @@ println(results.b_remembers_b_trial_count)
 ### 例 `PlayMWhenEmpty`
 
 `override_strategies` にメソッドを足し、`strategy_override` に渡す。呼ばれるメソッドは第一引数の型でディスパッチされる。こういった変更を加えない場合は、`NoOverride` にしておく。
+
+置き換え後の戦略は、そのエージェントのプレイ可能集合（`playable_A` / `playable_B`）に含まれている必要がある。制限付きゲームでは `play_a` / `play_b` を守ること。違反すると `run_simulation` は `ArgumentError` を出す。
 
 下の例は、相手について読むメモリが空のとき、 M (`2`) を出す操作をしたもの。空スロットは `Int8(-1)` である。
 

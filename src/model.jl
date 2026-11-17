@@ -249,7 +249,7 @@ struct AgentPopulation
     group_a_indices::Vector{Int}
     group_b_indices::Vector{Int}
 
-    function AgentPopulation(config::SimConfig)
+    function AgentPopulation(config::SimConfig, rng::AbstractRNG)
         (; num_agents) = config
         groups = assign_groups(config)
 
@@ -264,7 +264,7 @@ struct AgentPopulation
             ratio = group == GROUP_A ?
                 config.type_conditioning_ratio_a :
                 config.type_conditioning_ratio_b
-            uses_tc = rand() < ratio
+            uses_tc = rand(rng) < ratio
             agents[i] = Agent(i, group, uses_tc)
             if group == GROUP_A
                 push!(group_a_indices, i)
@@ -276,6 +276,8 @@ struct AgentPopulation
         return new(agents, group_a_indices, group_b_indices)
     end
 end
+
+AgentPopulation(config::SimConfig) = AgentPopulation(config, Random.default_rng())
 
 # Empty memory slot
 const MEMORY_PLACEHOLDER = Int8(-1)
@@ -486,6 +488,10 @@ Return the two strategies from `determine_strategy` unchanged.
 Called once per encounter. The other arguments are that encounter's trial
 state. `NoOverride` ignores them. Another `StrategyOverride` method may use
 them and return replacement strategies, which the trial then records.
+
+After this returns, `run_simulation` requires each strategy to lie in that
+agent's group playable set (`playable_A` or `playable_B`); otherwise it raises
+`ArgumentError`.
 """
 function override_strategies(
         ::NoOverride,
@@ -501,10 +507,30 @@ function override_strategies(
     return strategy1, strategy2
 end
 
-"""
-    match_agents(::OnePair, step, memory, population, config) -> Vector{Tuple{Int,Int}}
+"""Playable strategy indices for `agent`'s group."""
+function _playable_for(agent::Agent, game::PairGame)
+    return agent.group == GROUP_A ? game.playable_A : game.playable_B
+end
 
-One pair of distinct agent indices, drawn uniformly with the task-local RNG.
+"""
+    _assert_override_playable!(agent, strategy, game)
+
+Require `strategy` to be an element of the playable set for `agent`'s group.
+"""
+function _assert_override_playable!(agent::Agent, strategy::Int8, game::PairGame)
+    playable = _playable_for(agent, game)
+    s = Int(strategy)
+    any(==(s), playable) && return nothing
+    group_label = agent.group == GROUP_A ? "A" : "B"
+    throw(ArgumentError(
+        "strategy $s is not playable for group $group_label; allowed $playable",
+    ))
+end
+
+"""
+    match_agents(::OnePair, step, memory, population, config, rng) -> Vector{Tuple{Int,Int}}
+
+One pair of distinct agent indices, drawn uniformly with `rng`.
 
 Called once per step. The other arguments are that step's trial state.
 `OnePair` ignores them. Another `MatchingRule` method may use them and return
@@ -516,10 +542,11 @@ function match_agents(
         _memory::MemorySystem,
         population::AgentPopulation,
         _config::SimConfig,
+        rng::AbstractRNG,
     )
     n = length(population.agents)
-    a1 = rand(1:n)
-    temp = rand(1:(n - 1))
+    a1 = rand(rng, 1:n)
+    temp = rand(rng, 1:(n - 1))
     a2 = temp >= a1 ? temp + 1 : temp
     return [(a1, a2)]
 end
@@ -561,6 +588,9 @@ Run one trial from `seed` and return that seed, the stopping-step memory
 counts, and the memory itself. A missing seed is drawn from `RandomDevice`.
 This function does not test whether the process has converged.
 
+Random choices use a trial-local `Xoshiro(seed)`; the caller's default RNG is
+not modified.
+
 `track_callback` is `track_callback(step, memory, config, population)`.
 """
 function run_simulation(
@@ -571,11 +601,10 @@ function run_simulation(
     )
     # A missing seed is drawn once from the OS.
     seed = seed === nothing ? rand(Random.RandomDevice(), Int) : seed
-    # Fix the task-local RNG so later rand calls in this trial follow that seed.
-    Random.seed!(seed)
+    rng = Random.Xoshiro(seed)
 
     # Initialize simulation state
-    population = AgentPopulation(config)
+    population = AgentPopulation(config, rng)
     memory = MemorySystem(config)
 
     # Pre-allocate working buffers (use max of both groups)
@@ -585,7 +614,7 @@ function run_simulation(
 
     # Run interactions
     for step in 1:config.steps_per_initialization
-        pairs = match_agents(config.matching, step, memory, population, config)
+        pairs = match_agents(config.matching, step, memory, population, config, rng)
         for (a1, a2) in pairs
             agent1 = population.agents[a1]
             agent2 = population.agents[a2]
@@ -597,6 +626,7 @@ function run_simulation(
                 config,
                 payoffs,
                 optimal_strategies,
+                rng,
             )
             strategy2, _, _ = determine_strategy(
                 memory,
@@ -605,6 +635,7 @@ function run_simulation(
                 config,
                 payoffs,
                 optimal_strategies,
+                rng,
             )
             # Optional replacement of the two chosen strategies. NoOverride leaves them unchanged.
             strategy1, strategy2 = override_strategies(
@@ -618,6 +649,8 @@ function run_simulation(
                 population,
                 config,
             )
+            _assert_override_playable!(agent1, strategy1, config.game)
+            _assert_override_playable!(agent2, strategy2, config.game)
 
             # Each agent records the opponent's strategy.
             _record_observation!(memory, agent1.id, strategy2, agent2.group, config)

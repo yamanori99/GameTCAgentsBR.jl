@@ -157,6 +157,7 @@ function _count_strategies_against!(
             agent, opponent,
             step, memory, population, config,
         )
+        _assert_override_playable!(agent, strategy, config.game)
         counts[Int(strategy)] += 1
     end
     return counts

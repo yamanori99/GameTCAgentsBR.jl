@@ -6,6 +6,8 @@
 - **`compute_payoff_outcome`**: The return value no longer includes `L_value` (use `payoff_matrix[1, 1]` when you need that quantity).
 - **`PairGame`**: Games with more than 127 strategies now raise `ArgumentError` at construction (memory stores strategy codes as `Int8`).
 - **`compute_payoff_outcome`**: Zero total payoff magnitude uses an exact zero check (`iszero`) rather than approximate equality.
+- **`run_simulation`**: Uses a trial-local `Xoshiro(seed)` instead of `Random.seed!`, so the caller's default RNG is unchanged. The same integer seed no longer reproduces 0.1.x memory trajectories.
+- **`override_strategies`**: After an override, each returned strategy must belong to that agent's group playable set (`playable_A` / `playable_B`); otherwise `run_simulation` raises `ArgumentError`.
 
 ## 0.1.2
 
