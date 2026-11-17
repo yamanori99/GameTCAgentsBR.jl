@@ -10,6 +10,7 @@
 - **`match_agents`**: `run_simulation` passes a sixth argument `rng::AbstractRNG`. Custom `MatchingRule` methods must add this parameter (no default). A 0.1.x five-argument signature raises `MethodError` during a trial.
 - **`AgentPopulation`**: The one-argument `AgentPopulation(config)` constructor is removed. Pass `AgentPopulation(config, rng)` (for example `AgentPopulation(config, Xoshiro(seed))`).
 - **`determine_strategy`**: The `rng` argument is required (no default `Random.default_rng()`).
+- **`sample_strategy_shares`**: The `rng` argument is required (no default `Random.default_rng()`). Pass the same trial RNG you use in `track_callback`, for example `sample_strategy_shares(memory, config, population, rng; step)`.
 - **`run_simulation`**: A missing seed (`seed` keyword and `config.random_seed` both `nothing`) raises `ArgumentError` instead of drawing from `RandomDevice`. Set `random_seed = 1234` on `SimConfig`, call `run_simulation(config; seed = 1234)`, or generate a seed explicitly (for example `seed = rand(Random.RandomDevice(), Int)`).
 - **`run_batch`**: Without `trial_seeds`, `config.random_seed` must be set; otherwise `ArgumentError`. Explicit `trial_seeds = [s1, s2, ...]` remains valid when `random_seed` is unset.
 - **`override_strategies`**: After an override, each returned strategy must belong to that agent's group playable set (`playable_A` / `playable_B`); otherwise `run_simulation` and `sample_strategy_shares` raise `ArgumentError`.

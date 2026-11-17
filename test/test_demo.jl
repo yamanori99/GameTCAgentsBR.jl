@@ -35,19 +35,20 @@ end
 
     @testset "nine cases" begin
         expected = (
-            :l05 => 0.5,
-            :l10 => 1.0,
-            :l15 => 1.5,
-            :l20 => 2.0,
-            :l25 => 2.5,
-            :l30 => 3.0,
-            :l35 => 3.5,
-            :l40 => 4.0,
-            :l45 => 4.5,
+            :l05 => (0.5, 5_001),
+            :l10 => (1.0, 10_001),
+            :l15 => (1.5, 15_001),
+            :l20 => (2.0, 20_001),
+            :l25 => (2.5, 25_001),
+            :l30 => (3.0, 30_001),
+            :l35 => (3.5, 35_001),
+            :l40 => (4.0, 40_001),
+            :l45 => (4.5, 45_001),
         )
-        for (case, L) in expected
+        for (case, (L, seed)) in expected
             title, config = _demo_setup(case)
             @test occursin("L=$(L)", title)
+            @test config.random_seed === seed
             @test config.game.U[1, 1] == L
             @test config.game.U[2, 2] == 5.0
             @test config.game.U[3, 1] == 10.0 - L
@@ -55,6 +56,9 @@ end
             @test opts.case === case
             @test !opts.trajectory_mode
         end
+        _, one_only = _demo_setup(:l40one)
+        @test one_only.random_seed === 40_010
+
         _, reference = _demo_setup(:l45)
         @test reference.game.labels == ["L", "M", "H"]
         @test reference.num_agents == 20
@@ -110,6 +114,10 @@ end
         seeds = _trial_seeds(config, counts)
         @test length(seeds) == config.num_initializations
         @test seeds == rand(Random.Xoshiro(5), Int, config.num_initializations)
+
+        counts_default = DemoOptions(:l45, false, 200, nothing, nothing, false)
+        @test _trial_seeds(config, counts_default) ==
+            rand(Random.Xoshiro(45_001), Int, config.num_initializations)
     end
 
     @testset "configuration and results IO" begin
