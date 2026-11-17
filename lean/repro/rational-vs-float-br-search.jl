@@ -71,7 +71,7 @@ end
 
 function write_minimal_repro!(nums, q, banks, playable, fset, rset)
     path = joinpath(@__DIR__, "rational-vs-float-br-minimal.jl")
-    open(path, "w") do io
+    return open(path, "w") do io
         println(io, "# Auto-generated: float eps set strictly larger than rational argmax.")
         println(io, "using GameTCAgentsBR")
         println(io, "include(joinpath(@__DIR__, \"rational-vs-float-br-search.jl\"))")
@@ -86,24 +86,26 @@ function write_minimal_repro!(nums, q, banks, playable, fset, rset)
         end
         println(io, "    return [ba]")
         println(io, "end")
-        println(io, """
-function main()
-    Uf, Ur = matrix_from_grid(nums, q)
-    banks = banks_vec()
-    fset, fμ, _ = float_eps_set(Uf, banks, playable)
-    rset, rμ, _ = rational_argmax_set(Ur, banks, playable)
-    println("float_means=", [fμ[s] for s in playable])
-    println("rat_means=", [Float64(rμ[s]) for s in playable])
-    println("float_eps_set=\$fset rational_argmax=\$rset")
-    length(fset) > length(rset) || error("not a counterexample")
-    println("REPRODUCED rational-vs-float-br-eps-larger")
-end
-main()
-""")
+        println(
+            io, """
+            function main()
+                Uf, Ur = matrix_from_grid(nums, q)
+                banks = banks_vec()
+                fset, fμ, _ = float_eps_set(Uf, banks, playable)
+                rset, rμ, _ = rational_argmax_set(Ur, banks, playable)
+                println("float_means=", [fμ[s] for s in playable])
+                println("rat_means=", [Float64(rμ[s]) for s in playable])
+                println("float_eps_set=\$fset rational_argmax=\$rset")
+                length(fset) > length(rset) || error("not a counterexample")
+                println("REPRODUCED rational-vs-float-br-eps-larger")
+            end
+            main()
+            """
+        )
     end
 end
 
-function compare_once!(stats::SearchStats, Uf, Ur, banks, playable, examples, nums=nothing, q=nothing)
+function compare_once!(stats::SearchStats, Uf, Ur, banks, playable, examples, nums = nothing, q = nothing)
     fset, _, _ = float_eps_set(Uf, banks, playable)
     rset, _, _ = rational_argmax_set(Ur, banks, playable)
     stats.cases += 1
@@ -112,7 +114,7 @@ function compare_once!(stats::SearchStats, Uf, Ur, banks, playable, examples, nu
         return
     end
     ex = (; fset, rset, playable, banks)
-    if length(fset) > length(rset)
+    return if length(fset) > length(rset)
         stats.eps_larger += 1
         if isempty(examples[:larger])
             nums !== nothing && write_minimal_repro!(nums, q, banks, playable, fset, rset)
@@ -136,7 +138,7 @@ function random_bank(mem_len::Int, n_obs::Int, n_strat::Int, rng::AbstractRNG)
 end
 
 function all_playable_subsets(n::Int)
-    [collect(s for s in 1:n if (mask >> (s - 1)) & 1 == 1) for mask in 1:(2^n - 1)]
+    return [collect(s for s in 1:n if (mask >> (s - 1)) & 1 == 1) for mask in 1:(2^n - 1)]
 end
 
 function nash_U(x::Float64)
@@ -166,6 +168,7 @@ function random_search!(stats, rng, q, k_range, n_strat, mem, tc, samples, examp
             end
         end
     end
+    return
 end
 
 function nash_search!(stats::SearchStats, rng, examples)
@@ -188,6 +191,7 @@ function nash_search!(stats::SearchStats, rng, examples)
             end
         end
     end
+    return
 end
 
 function hunt_eps_smaller!(stats, examples)
@@ -209,6 +213,7 @@ function hunt_eps_smaller!(stats, examples)
             end
         end
     end
+    return
 end
 
 function main()
@@ -242,7 +247,7 @@ function main()
     println("cases=$(stats.cases) agree=$(stats.agree)")
     println("eps_larger=$(stats.eps_larger) eps_smaller=$(stats.eps_smaller) symdiff=$(stats.eps_symdiff)")
 
-    if stats.eps_smaller > 0
+    return if stats.eps_smaller > 0
         println("\nREPRODUCED rational-vs-float-br-eps-smaller")
     elseif stats.eps_larger > 0
         println("\nREPRODUCED rational-vs-float-br-eps-larger")

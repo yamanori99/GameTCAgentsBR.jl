@@ -14,7 +14,7 @@ function main_lite()
         length(examples[:larger]) > 0 && break
     end
     println("lite: cases=$(stats.cases) larger=$(stats.eps_larger) smaller=$(stats.eps_smaller)")
-    isfile(joinpath(@__DIR__, "rational-vs-float-br-minimal.jl")) && println("wrote minimal.jl") || println("no counterexample")
+    return isfile(joinpath(@__DIR__, "rational-vs-float-br-minimal.jl")) && println("wrote minimal.jl") || println("no counterexample")
 end
 
 main_lite()
