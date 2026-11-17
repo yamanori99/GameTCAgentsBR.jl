@@ -14,7 +14,7 @@ GameTCAgentsBR.jl は、有限集団における二者間のゲームを繰り�
 
 > [!NOTE]
 > この実装は、O'Connor (2017) のシミュレーションコードを大規模に汎用化し、拡張したものであり、同文献を参照されたい。
-> このシミュレーターは、ナッシュ要求ゲームを扱うために設計されており、demo と test はそのゲームを使う。
+> パッケージは任意の `PairGame` 利得行列を受け付ける。CLI デモ (`demo/run.jl`) は文献参照用にナッシュ要求ゲームの設定を使う。
 
 ## シミュレーションの手順
 
@@ -94,7 +94,7 @@ println(results.b_remembers_b_trial_count)
 ```
 
 最後の出力は、上から、A が B へ出した戦略、B が A へ出した戦略、A間の戦略、B間の戦略。
-それぞれ戦略L、M、H の順の試行数の`Vector{Int}`で出力される。
+それぞれ `game.labels` の順（ここでは L, M, H）の試行数の `Vector{Int}` で出力される。
 
 ### 1試行の軌跡を追跡する
 
@@ -144,7 +144,7 @@ end
 
 上の例は、両グループがすべての戦略を出せる設定である。`U[i, j]` は、戦略 `i` を出した人が戦略 `j` からもらう点数である。名前は結果ベクトルの順であり、戦略を選ぶ計算には使わない。
 
-B が H を出さない設定ができる。`U` は `3 × 3` のままである。
+B を戦略の一部だけに制限できる（例: 3 番目を出さない）。`U` は `3 × 3` のままである。
 
 ```julia
 U = [
@@ -176,9 +176,9 @@ game = PairGame(
 
 `demo/run.jl` は、この利得でエージェント20、5000ステップ、seedなしである。
 
-`julia --project=demo demo/run.jl` は、既定の `l45 counts` を実行する。
+`julia --project=demo demo/run.jl` を引数なしで実行すると、usage を stderr に出力して終了コード 2 で終了する。ケースとモードを渡す (例: `julia --project=demo demo/run.jl l45 counts`)。
 
-位置引数は `[case] [mode]` である。ケースは `l40one`、次に `l40`、その後 `l05` から `l45` までで、`l40` は繰り返さない (ナッシュ要求の `L = 0.5 … 4.5`)。
+位置引数は `[case] [mode]` で、省略時はそれぞれ `l45` と `counts` である。ケースは `l40one`、次に `l40`、その後 `l05` から `l45` までで、`l40` は繰り返さない (ナッシュ要求の `L = 0.5 … 4.5`)。軌跡モードは `traj` のみ (`trajectory` は不可)。
 
 `l40one` は `l40` と同じで、`group_a_size = 0`（全員が Group B）である。
 
@@ -241,7 +241,7 @@ println(results.b_remembers_b_trial_count)
 
 ### 例2 `SameGroupBias`
 
-同じ集団と確率 0.8 で組にする。希望した側に相手がいないときは、もう一方から引く。
+同じ集団と確率 0.8 で組にする。希望したプールが空のとき（例: `group_a_ratio = 0.0` で同集団優先）は、もう一方へ黙って切り替えず `ArgumentError` を出す。フォールバックが必要なら独自のルールで明示する。
 
 ```julia
 using GameTCAgentsBR
@@ -268,9 +268,11 @@ function match_agents(rule::SameGroupBias, _step, _memory, population, _config, 
     end
     prefer_same = rand(rng) < rule.probability
     pool = prefer_same ? same : other
-    if isempty(pool)
-        pool = prefer_same ? other : same
-    end
+    isempty(pool) &&
+        throw(ArgumentError(
+            "SameGroupBias: no partner in the $(prefer_same ? "same" : "other")-group pool; " *
+                "use group_a_ratio > 0 with both groups populated, or add an explicit fallback",
+        ))
     return [(a1, rand(rng, pool))]
 end
 
@@ -376,49 +378,10 @@ println(results.a_remembers_a_trial_count)
 println(results.b_remembers_b_trial_count)
 ```
 
-### `PlayMWhenEmpty` の追跡
-
-1試行について、途中の次の戦略のシェアを記録する。
+同じ `PlayMWhenEmpty` 定義のまま、1試行の途中で次の戦略のシェアを記録する:
 
 ```julia
-using GameTCAgentsBR
-using Random
-import GameTCAgentsBR: override_strategies
-
-struct PlayMWhenEmpty <: StrategyOverride end
-
-function row_has_observation(memory, agent, opponent)
-    if agent.uses_type_conditioning
-        row = if opponent.group == GROUP_A
-            memory.group_a_memories[agent.id, :]
-        else
-            memory.group_b_memories[agent.id, :]
-        end
-        return any(!=(Int8(-1)), row)
-    end
-    return any(!=(Int8(-1)), memory.group_a_memories[agent.id, :]) ||
-        any(!=(Int8(-1)), memory.group_b_memories[agent.id, :])
-end
-
-function override_strategies(::PlayMWhenEmpty, strategy1, strategy2, agent1, agent2,
-        step, memory, population, config)
-    if !row_has_observation(memory, agent1, agent2)
-        strategy1 = Int8(2)
-    end
-    if !row_has_observation(memory, agent2, agent1)
-        strategy2 = Int8(2)
-    end
-    return strategy1, strategy2
-end
-
-game = PairGame(
-    ["L", "M", "H"],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-    1:3,
-    1:3,
-)
-
-config = SimConfig(
+track_config = SimConfig(
     game = game,
     num_agents = 100,
     group_a_size = 30,
@@ -435,12 +398,12 @@ config = SimConfig(
 )
 
 path = NamedTuple[]
-rng = Xoshiro(config.random_seed)
+rng = Xoshiro(track_config.random_seed)
 function record(step, memory, config, population)
     shares = sample_strategy_shares(memory, config, population, rng; step)
     push!(path, (; step, shares...))
 end
-run_simulation(config; seed = config.random_seed, track_callback = record, track_interval = 100)
+run_simulation(track_config; seed = track_config.random_seed, track_callback = record, track_interval = 100)
 for sample in path
     println(sample.step, " ", sample.group_a_against_group_b)
 end

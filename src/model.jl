@@ -30,13 +30,13 @@ struct PairGame
             playable_B::Vector{Int},
         )
         n = size(U, 1)
-        @argcheck size(U, 2) == n "payoff matrix must be square"
-        @argcheck n <= MAX_NUM_STRATEGIES "number of strategies must not exceed $MAX_NUM_STRATEGIES (memories store strategies as $MEMORY_STRATEGY_ELTYPE)"
-        @argcheck length(labels) == n "label count must match the payoff matrix"
-        @argcheck !isempty(playable_A) && !isempty(playable_B) "each group must have a strategy"
-        @argcheck allunique(playable_A) && allunique(playable_B) "playable strategies must be unique"
+        @argcheck size(U, 2) == n "PairGame: payoff matrix U must be square (got $(size(U))); e.g. `PairGame([\"a\", \"b\"], [1.0 0.0; 0.0 1.0])`"
+        @argcheck n <= MAX_NUM_STRATEGIES "PairGame: strategy count $n exceeds $MAX_NUM_STRATEGIES (memory stores strategy codes as $MEMORY_STRATEGY_ELTYPE); use at most $MAX_NUM_STRATEGIES rows/columns in U"
+        @argcheck length(labels) == n "PairGame: length(labels) is $(length(labels)) but U has $n rows; pass one label per strategy, e.g. `labels = string.(1:$n)`"
+        @argcheck !isempty(playable_A) && !isempty(playable_B) "PairGame: each group needs at least one playable strategy index; got playable_A=$(repr(playable_A)), playable_B=$(repr(playable_B)) — e.g. `play_a = 1:$n`, `play_b = 1:$n`"
+        @argcheck allunique(playable_A) && allunique(playable_B) "PairGame: playable_A and playable_B must list unique strategy indices (no duplicates); got playable_A=$(repr(playable_A)), playable_B=$(repr(playable_B))"
         @argcheck all(i -> 1 <= i <= n, playable_A) &&
-            all(i -> 1 <= i <= n, playable_B) "playable strategies must be in 1:n"
+            all(i -> 1 <= i <= n, playable_B) "PairGame: playable strategy indices must lie in 1:$n (matrix size); got playable_A=$(repr(playable_A)), playable_B=$(repr(playable_B))"
         return new(labels, U, playable_A, playable_B)
     end
 end
@@ -116,18 +116,18 @@ struct SimConfig{O <: StrategyOverride, M <: MatchingRule}
         @argcheck 0.0 <= type_conditioning_ratio_a <= 1.0 &&
             0.0 <=
             type_conditioning_ratio_b <=
-            1.0 "type_conditioning_ratio must be in [0,1]"
-        @argcheck num_agents >= 2 "num_agents must be at least 2"
-        @argcheck memory_length_for_group_a > 0 "memory_length_for_group_a must be positive"
-        @argcheck memory_length_for_group_b > 0 "memory_length_for_group_b must be positive"
-        @argcheck common_memory_length > 0 "common_memory_length must be positive"
-        @argcheck num_initializations > 0 "num_initializations must be positive"
-        @argcheck steps_per_initialization > 0 "steps_per_initialization must be positive"
-        @argcheck group_a_size >= 0 "group_a_size must be non-negative"
+            1.0 "SimConfig: type_conditioning_ratio_a and type_conditioning_ratio_b must lie in [0, 1] (probabilities of opponent-group-specific memory); got a=$type_conditioning_ratio_a, b=$type_conditioning_ratio_b"
+        @argcheck num_agents >= 2 "SimConfig: num_agents must be at least 2 for pairwise matching (got $num_agents); e.g. `num_agents = 100`"
+        @argcheck memory_length_for_group_a > 0 "SimConfig: memory_length_for_group_a must be positive (got $memory_length_for_group_a); e.g. `memory_length_for_group_a = 10`"
+        @argcheck memory_length_for_group_b > 0 "SimConfig: memory_length_for_group_b must be positive (got $memory_length_for_group_b); e.g. `memory_length_for_group_b = 10`"
+        @argcheck common_memory_length > 0 "SimConfig: common_memory_length must be positive (got $common_memory_length); e.g. `common_memory_length = 20`"
+        @argcheck num_initializations > 0 "SimConfig: num_initializations must be positive (got $num_initializations); e.g. `num_initializations = 100`"
+        @argcheck steps_per_initialization > 0 "SimConfig: steps_per_initialization must be positive (got $steps_per_initialization); e.g. `steps_per_initialization = 10_000`"
+        @argcheck group_a_size >= 0 "SimConfig: group_a_size must be non-negative (got $group_a_size); e.g. `group_a_size = 30` with `num_agents = 100`"
         @argcheck 2 * group_a_size <=
-            num_agents "Group A must not be larger than Group B (need group_a_size <= num_agents ÷ 2)"
+            num_agents "SimConfig: Group A size ($group_a_size) cannot exceed Group B; require 2 * group_a_size <= num_agents ($num_agents)"
         @argcheck group_a_size <
-            num_agents "group_a_size must leave at least one Group B agent (group_a_size < num_agents)"
+            num_agents "SimConfig: group_a_size ($group_a_size) must leave at least one Group B agent (need group_a_size < num_agents=$num_agents); use `group_a_size = 0` for a one-group run"
         return new{O, M}(
             game,
             num_agents,
@@ -487,7 +487,12 @@ function _add_remembered_payoffs!(
         code == MEMORY_PLACEHOLDER && continue
         j = Int(code)
         if !(1 <= j <= n)
-            throw(ArgumentError("remembered strategy $j is outside 1:$n"))
+            throw(
+                ArgumentError(
+                    "determine_strategy (memory slot): strategy index $j is outside 1:$n for this PairGame; " *
+                        "memories store opponent strategy indices — reset corrupted slots or shorten the game matrix",
+                ),
+            )
         end
         for s in playable
             payoffs[s] += game.U[s, j]
@@ -542,7 +547,9 @@ function _assert_override_playable(agent::Agent, strategy::Int8, game::PairGame)
     group_label = agent.group == GROUP_A ? "A" : "B"
     throw(
         ArgumentError(
-            "override_strategies returned strategy $s, which is not playable for group $group_label; allowed $playable",
+            "override_strategies: returned strategy $s for group $group_label agent $(agent.id), " *
+                "but that group's playable set is $playable; return an index from that list, " *
+                "e.g. `strategy1 = Int8($(first(playable)))`",
         ),
     )
 end

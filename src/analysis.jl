@@ -1,5 +1,8 @@
 # Memory counts, payoff summary, and strategy shares.
 
+"""Relative tolerance for `compute_payoff_outcome` payoff balance (1%)."""
+const PAYOFF_BALANCE_REL_TOL = 0.01
+
 """
     _accumulate_strategy_counts!(counts, mem_view, num_strategies_max, agent_id)
 
@@ -20,7 +23,8 @@ function _accumulate_strategy_counts!(
         else
             throw(
                 ArgumentError(
-                    "strategy code $s at agent $agent_id memory slot $slot is outside 1:$num_strategies_max",
+                    "count_final_strategies: strategy code $s at agent $agent_id memory slot $slot is outside 1:$num_strategies_max for this game; " *
+                        "memories store strategy indices from the payoff matrix — reset corrupted slots or align `PairGame` size",
                 ),
             )
         end
@@ -78,8 +82,10 @@ function applies to the shared square payoff `U`: if A uses strategy `i` and B
 uses strategy `j`, their payoffs are `U[i, j]` and `U[j, i]`.
 
 `payoff_gap` is the relative absolute difference
-`|payoff_A - payoff_B| / (|payoff_A| + |payoff_B|)`. `advantage = :fair` when
-`abs(payoff_A - payoff_B) < 0.01 * max(payoff_A, payoff_B, 0.01)`.
+`|payoff_A - payoff_B| / (|payoff_A| + |payoff_B|)`. `advantage = :balanced` when
+`abs(payoff_A - payoff_B) < PAYOFF_BALANCE_REL_TOL * max(payoff_A, payoff_B, 0.01)`
+(`PAYOFF_BALANCE_REL_TOL` is `0.01`, i.e. a 1% band). Otherwise `advantage` is
+`:payoff_a_higher` or `:payoff_b_higher`.
 
 When either count vector sums to zero, payoffs and `advantage` are `missing` and
 `missing_reason` is `:empty_strategy_counts` (not `NaN` or `:unknown`).
@@ -90,10 +96,10 @@ function compute_payoff_outcome(
         payoff_matrix::Matrix{Float64}
     )
     n = size(payoff_matrix, 1)
-    @argcheck size(payoff_matrix, 2) == n "payoff matrix must be square"
+    @argcheck size(payoff_matrix, 2) == n "compute_payoff_outcome: payoff_matrix must be square (got $(size(payoff_matrix))); pass an n×n matrix"
     len_a = length(a_strategy_counts)
     len_b = length(b_strategy_counts)
-    @argcheck len_a == n && len_b == n "strategy count vector lengths must match payoff matrix size ($n); got $len_a and $len_b"
+    @argcheck len_a == n && len_b == n "compute_payoff_outcome: count vector lengths must equal payoff matrix size ($n); got a_strategy_counts length $len_a and b_strategy_counts length $len_b — e.g. `zeros(Int, $n)` for each side"
 
     a_total = sum(a_strategy_counts)
     b_total = sum(b_strategy_counts)
@@ -127,13 +133,13 @@ function compute_payoff_outcome(
         payoff_gap = abs(payoff_A - payoff_B) / total_magnitude
     end
 
-    ε = 0.01 * max(payoff_A, payoff_B, 0.01)
+    ε = PAYOFF_BALANCE_REL_TOL * max(payoff_A, payoff_B, 0.01)
     if abs(payoff_A - payoff_B) < ε
-        advantage = :fair
+        advantage = :balanced
     elseif payoff_A > payoff_B
-        advantage = :a_advantage
+        advantage = :payoff_a_higher
     else
-        advantage = :b_advantage
+        advantage = :payoff_b_higher
     end
 
     return (
@@ -209,13 +215,13 @@ function sample_strategy_shares(
         rng::AbstractRNG;
         step::Int,
     )
-    n_strategies = num_strategies(config)
-    payoffs = zeros(Float64, n_strategies)
-    optimal_strategies = Vector{Int}(undef, n_strategies)
-    counts_a_a = zeros(Int, n_strategies)
-    counts_a_b = zeros(Int, n_strategies)
-    counts_b_a = zeros(Int, n_strategies)
-    counts_b_b = zeros(Int, n_strategies)
+    n_strat = num_strategies(config)
+    payoffs = zeros(Float64, n_strat)
+    optimal_strategies = Vector{Int}(undef, n_strat)
+    counts_a_a = zeros(Int, n_strat)
+    counts_a_b = zeros(Int, n_strat)
+    counts_b_a = zeros(Int, n_strat)
+    counts_b_b = zeros(Int, n_strat)
 
     n_a = length(population.group_a_indices)
     n_b = length(population.group_b_indices)
@@ -246,9 +252,9 @@ function sample_strategy_shares(
     end
 
     return (
-        group_a_against_group_a = _share_copy(counts_a_a, n_a, n_strategies),
-        group_a_against_group_b = _share_copy(counts_a_b, n_a > 0 && n_b > 0 ? n_a : 0, n_strategies),
-        group_b_against_group_a = _share_copy(counts_b_a, n_a > 0 && n_b > 0 ? n_b : 0, n_strategies),
-        group_b_against_group_b = _share_copy(counts_b_b, n_b, n_strategies),
+        group_a_against_group_a = _share_copy(counts_a_a, n_a, n_strat),
+        group_a_against_group_b = _share_copy(counts_a_b, n_a > 0 && n_b > 0 ? n_a : 0, n_strat),
+        group_b_against_group_a = _share_copy(counts_b_a, n_a > 0 && n_b > 0 ? n_b : 0, n_strat),
+        group_b_against_group_b = _share_copy(counts_b_b, n_b, n_strat),
     )
 end

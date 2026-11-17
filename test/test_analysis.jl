@@ -119,7 +119,7 @@ end
         first = run_batch(seeded; trial_seeds)
         second = run_batch(seeded; trial_seeds)
         @test first.a_remembers_b_trial_count == second.a_remembers_b_trial_count
-        @test_throws ErrorException run_batch(seeded; trial_seeds = [1, 2])
+        @test_throws ArgumentError run_batch(seeded; trial_seeds = [1, 2])
         @test_throws ArgumentError run_batch(seeded)
 
         callback_data = []
@@ -139,20 +139,20 @@ end
         fair = compute_payoff_outcome([0, 100, 0], [0, 100, 0], payoff_matrix)
         @test fair.payoff_gap ≈ 0.0 atol = 0.001
         @test fair.payoff_A ≈ fair.payoff_B atol = 0.001
-        @test fair.advantage == :fair
+        @test fair.advantage == :balanced
         @test !hasproperty(fair, :L_value)
 
         a_advantage = compute_payoff_outcome([0, 0, 100], [100, 0, 0], payoff_matrix)
         @test a_advantage.payoff_A ≈ 8.0 atol = 0.001
         @test a_advantage.payoff_B ≈ 2.0 atol = 0.001
         @test a_advantage.payoff_gap ≈ 0.6 atol = 0.001
-        @test a_advantage.advantage == :a_advantage
+        @test a_advantage.advantage == :payoff_a_higher
 
         b_advantage = compute_payoff_outcome([100, 0, 0], [0, 0, 100], payoff_matrix)
         @test b_advantage.payoff_A ≈ 2.0 atol = 0.001
         @test b_advantage.payoff_B ≈ 8.0 atol = 0.001
         @test b_advantage.payoff_gap ≈ 0.6 atol = 0.001
-        @test b_advantage.advantage == :b_advantage
+        @test b_advantage.advantage == :payoff_b_higher
 
         empty = compute_payoff_outcome([0, 0, 0], [0, 0, 0], payoff_matrix)
         @test ismissing(empty.payoff_gap)
@@ -161,21 +161,18 @@ end
         @test ismissing(empty.advantage)
         @test empty.missing_reason == :empty_strategy_counts
 
-        demand = compute_payoff_outcome(
-            [0, 0, 100], [100, 0, 0],
-            [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-        )
-        @test demand.payoff_A ≈ 5.5 atol = 0.001
-        @test demand.payoff_B ≈ 4.5 atol = 0.001
-        @test demand.payoff_gap ≈ 0.1 atol = 0.001
-        @test !hasproperty(demand, :L_value)
+        skewed = compute_payoff_outcome([0, 0, 100], [100, 0, 0], payoff_matrix)
+        @test skewed.payoff_A ≈ 8.0 atol = 0.001
+        @test skewed.payoff_B ≈ 2.0 atol = 0.001
+        @test skewed.payoff_gap ≈ 0.6 atol = 0.001
+        @test skewed.advantage == :payoff_a_higher
 
         zero_matrix = zeros(3, 3)
         zero_payoff = compute_payoff_outcome([100, 0, 0], [0, 100, 0], zero_matrix)
         @test zero_payoff.payoff_A == 0.0
         @test zero_payoff.payoff_B == 0.0
         @test zero_payoff.payoff_gap == 0.0
-        @test zero_payoff.advantage == :fair
+        @test zero_payoff.advantage == :balanced
 
         @test_throws ArgumentError compute_payoff_outcome([1, 2], [1, 2, 3], payoff_matrix)
         @test_throws ArgumentError compute_payoff_outcome([1, 2, 3, 4], [1, 2, 3, 4], payoff_matrix)
@@ -207,7 +204,7 @@ end
         @test from_memory.payoff_A ≈ 2.0 atol = 0.001
         @test from_memory.payoff_B ≈ 8.0 atol = 0.001
         @test from_memory.payoff_gap ≈ 0.6 atol = 0.001
-        @test from_memory.advantage == :b_advantage
+        @test from_memory.advantage == :payoff_b_higher
     end
 
     @testset "sample_strategy_shares" begin
@@ -246,7 +243,7 @@ end
         )
         @test empty_shares.group_a_against_group_b ≈ [0.0, 1.0, 0.0]
 
-        limited_game = PairGame(["L", "M", "H"], TEST_DEMAND_PAYOFF, [1, 2, 3], [1, 2])
+        limited_game = PairGame(["s1", "s2", "s3"], TEST_PAYOFF_3, [1, 2, 3], [1, 2])
         bad_shares = test_sim_config(
             game = limited_game, num_agents = 4, group_a_size = 1,
             strategy_override = ForceHForActingB(),

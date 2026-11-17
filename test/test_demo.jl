@@ -72,7 +72,7 @@ end
     end
 
     @testset "CLI parsing" begin
-        defaults = _parse_demo_case(String[])
+        defaults = _parse_demo_case(["l45"])
         @test defaults.case === :l45
         @test !defaults.trajectory_mode
         @test defaults.samples == TRAJ_TARGET_SAMPLES
@@ -94,6 +94,16 @@ end
         @test_throws ArgumentError _parse_demo_case(["unknown"])
         @test_throws ArgumentError _parse_demo_case(["--steps", "0"])
         @test_throws ArgumentError _parse_demo_case(["l05", "l10"])
+        @test_throws ArgumentError _parse_demo_case(["l45", "trajectory"])
+        err = @test_throws ArgumentError _parse_demo_case(["trajectory"])
+        @test occursin("traj", string(err.value))
+    end
+
+    @testset "CLI main exit codes" begin
+        @test main(String[]) == 2
+        @test main(["-h"]) == 0
+        @test main(["--help"]) == 0
+        @test main(["unknown-flag"]) == 2
     end
 
     @testset "trajectory config and seeds" begin
@@ -162,8 +172,8 @@ end
         cfg = _rebuild_config(cfg; steps_per_initialization = 500)
         @test default_traj_interval(cfg) == 3
         @test effective_traj_interval(cfg, 50) == 10
-        @test effective_traj_interval(cfg, 0) == default_traj_interval(cfg)
-        @test effective_traj_interval(cfg, -5) == default_traj_interval(cfg)
+        @test_throws ArgumentError effective_traj_interval(cfg, 0)
+        @test_throws ArgumentError effective_traj_interval(cfg, -5)
     end
 
     @testset "group indices for trajectory reps" begin

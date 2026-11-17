@@ -8,7 +8,13 @@ Return the given seeds, or derive one seed per trial from `config.random_seed`.
 function _derive_trial_seeds(config::SimConfig, trial_seeds::Union{Nothing, Vector{Int}})
     if trial_seeds !== nothing
         length(trial_seeds) == config.num_initializations ||
-            error("trial_seeds length must equal num_initializations")
+            throw(
+            ArgumentError(
+                "run_batch: length(trial_seeds) is $(length(trial_seeds)) but SimConfig.num_initializations " *
+                    "is $(config.num_initializations); pass one seed per trial, e.g. " *
+                    "`trial_seeds = [101, 102, 103]` when `num_initializations = 3`",
+            ),
+        )
         return trial_seeds
     end
     config.random_seed === nothing &&

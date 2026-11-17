@@ -4,15 +4,15 @@
 # Each `_demo_setup` branch builds `PairGame` + `SimConfig` inline — copy a
 # branch and swap labels, matrices, and config.
 #
-# Args: [case] [mode], or none → l45 counts.
-#   case: l40one | l40 | l05 | l10 | l15 | l20 | l25 | l30 | l35 | l45
-#   mode: counts | traj
+# Args: [case] [mode] (required; no arguments → usage on stderr, exit 2).
+#   case: l40one | l40 | l05 | l10 | l15 | l20 | l25 | l30 | l35 | l45 (default l45 when omitted)
+#   mode: counts | traj (default counts when omitted)
 #
 # Each case sets a fixed `random_seed` on `SimConfig` for reproducible default runs.
 # Override with `--seed N` (see `print_usage`).
 #
 # Usage:
-#   julia --project=demo demo/run.jl
+#   julia --project=demo demo/run.jl l45 counts
 #   julia --project=demo demo/run.jl l20 counts
 #   julia --project=demo demo/run.jl l20 traj --samples 50 --seed 7 --steps 100
 
@@ -27,6 +27,8 @@ const _DEMO_CASES = (
 )
 const DEFAULT_DEMO_CASE = :l45
 const TRAJ_TARGET_SAMPLES = 200
+const USAGE_REWRITE_HINT =
+    "Pass a case and mode, for example: julia --project=demo demo/run.jl l45 counts"
 
 struct DemoOptions
     case::Symbol
@@ -310,8 +312,8 @@ end
 
 function print_usage(io::IO = stdout)
     println(io, "Usage: julia --project=demo demo/run.jl [case] [mode] [options]")
-    println(io, "  case∈{l40one,l40,l05,l10,l15,l20,l25,l30,l35,l45} (default l45)")
-    println(io, "  mode∈{counts,traj} (default counts)")
+    println(io, "  case∈{l40one,l40,l05,l10,l15,l20,l25,l30,l35,l45} (omit → l45)")
+    println(io, "  mode∈{counts,traj} (omit → counts)")
     println(io, "  --samples N   trajectory target sample count (default: $(TRAJ_TARGET_SAMPLES))")
     println(io, "  --steps N     override steps_per_initialization")
     println(io, "  --seed N      override random seed")
@@ -363,7 +365,9 @@ function _parse_demo_case(args)
             saw_mode && throw(ArgumentError("mode specified more than once"))
             mode = :counts
             saw_mode = true
-        elseif a == "traj" || a == "trajectory"
+        elseif a == "trajectory"
+            throw(ArgumentError("unknown argument: trajectory; use `traj`"))
+        elseif a == "traj"
             saw_mode && throw(ArgumentError("mode specified more than once"))
             mode = :traj
             saw_mode = true
@@ -422,7 +426,7 @@ function default_traj_interval(cfg::SimConfig)
 end
 
 function effective_traj_interval(cfg::SimConfig, samples::Int)
-    samples <= 0 && return default_traj_interval(cfg)
+    samples <= 0 && throw(ArgumentError("--samples must be positive"))
     return max(1, cld(cfg.steps_per_initialization, samples))
 end
 
@@ -434,7 +438,8 @@ mutable struct ShareSeries{R <: AbstractRNG}
     group_a_against_group_b::Vector{Vector{Float64}}
     group_b_against_group_a::Vector{Vector{Float64}}
     group_b_against_group_b::Vector{Vector{Float64}}
-    payoff_gap::Vector{Float64}
+    payoff_gap::Vector{Union{Missing, Float64}}
+    payoff_gap_missing_reason::Vector{Union{String, Nothing}}
 end
 
 function ShareSeries(interval::Int, rng::R) where {R <: AbstractRNG}
@@ -447,7 +452,8 @@ function ShareSeries(interval::Int, rng::R) where {R <: AbstractRNG}
         Vector{Vector{Float64}}(),
         Vector{Vector{Float64}}(),
         Vector{Vector{Float64}}(),
-        Float64[],
+        Union{Missing, Float64}[],
+        Union{String, Nothing}[],
     )
 end
 
@@ -471,7 +477,16 @@ function (rec::ShareSeries)(step, memory, config, population)
         b_counts = round.(Int, shares.group_b_against_group_a .* n_b)
         outcome = compute_payoff_outcome(a_counts, b_counts, config.game.U)
         gap = outcome.payoff_gap
-        push!(rec.payoff_gap, ismissing(gap) ? 0.0 : gap)
+        if ismissing(gap)
+            push!(rec.payoff_gap, missing)
+            push!(
+                rec.payoff_gap_missing_reason,
+                "independent-share payoff gap undefined ($(outcome.missing_reason))",
+            )
+        else
+            push!(rec.payoff_gap, gap)
+            push!(rec.payoff_gap_missing_reason, nothing)
+        end
     end
     return nothing
 end
@@ -638,22 +653,44 @@ function _plot_trajectory_block(io::IO, title::String, rec_steps, data, labels, 
     return
 end
 
+function _payoff_gap_plot_series(rec::ShareSeries)
+    steps = Int[]
+    gaps = Float64[]
+    for (step, gap) in zip(rec.steps, rec.payoff_gap)
+        ismissing(gap) && continue
+        push!(steps, step)
+        push!(gaps, gap)
+    end
+    return steps, gaps
+end
+
 function _print_inequality_analysis(io::IO, rec::ShareSeries, config::SimConfig)
     isempty(rec.payoff_gap) && return
-    plt = lineplot(
-        rec.steps,
-        rec.payoff_gap;
-        title = "Payoff gap (0=equal, 1=unequal)",
-        xlabel = "step",
-        ylabel = "gap",
-        ylim = (0, 1),
-        xlim = (0, config.steps_per_initialization),
-        width = 50,
-        height = 8,
-    )
-    show(io, plt)
-    println(io)
-    println(io)
+    plot_steps, plot_gaps = _payoff_gap_plot_series(rec)
+    if !isempty(plot_gaps)
+        plt = lineplot(
+            plot_steps,
+            plot_gaps;
+            title = "Payoff gap (0=equal, 1=unequal)",
+            xlabel = "step",
+            ylabel = "gap",
+            ylim = (0, 1),
+            xlim = (0, config.steps_per_initialization),
+            width = 50,
+            height = 8,
+        )
+        show(io, plt)
+        println(io)
+        println(io)
+    end
+    missing_reasons = unique(filter(!isnothing, rec.payoff_gap_missing_reason))
+    if !isempty(missing_reasons)
+        println(io, "  Payoff gap omitted at some steps:")
+        for reason in missing_reasons
+            println(io, "    ", reason)
+        end
+        println(io)
+    end
     n_a = config.group_a_size
     n_b = config.num_agents - config.group_a_size
     final_ab_counts = round.(Int, rec.group_a_against_group_b[end] .* n_a)
@@ -663,11 +700,11 @@ function _print_inequality_analysis(io::IO, rec::ShareSeries, config::SimConfig)
         println(io, "Final independent-share payoffs  missing ($(final_result.missing_reason))")
     else
         adv = final_result.advantage
-        advantage_str = if adv === :fair
+        advantage_str = if adv === :balanced
             "approximately equal"
-        elseif adv === :a_advantage
+        elseif adv === :payoff_a_higher
             "A payoff higher"
-        elseif adv === :b_advantage
+        elseif adv === :payoff_b_higher
             "B payoff higher"
         else
             "missing"
@@ -742,8 +779,19 @@ function _show_model_demo(options::DemoOptions; io::IO = stdout)
     return _run_demo(config, options; io = io)
 end
 
+function _report_usage_error(msg::AbstractString)::Cint
+    println(stderr, "Error: ", msg)
+    println(stderr, USAGE_REWRITE_HINT)
+    print_usage(stderr)
+    return 2
+end
+
 function main(args = ARGS)::Cint
     try
+        if isempty(args)
+            print_usage(stderr)
+            return 2
+        end
         options = _parse_demo_case(args)
         if options.show_help
             print_usage()
@@ -753,9 +801,7 @@ function main(args = ARGS)::Cint
         return 0
     catch e
         if e isa ArgumentError
-            println(stderr, "Error: ", e.msg)
-            print_usage(stderr)
-            return 1
+            return _report_usage_error(e.msg)
         end
         rethrow()
     end
