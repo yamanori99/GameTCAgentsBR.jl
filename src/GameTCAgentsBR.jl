@@ -54,7 +54,7 @@ config = SimConfig(
     matching = OnePair(),
     num_initializations = 10000,  # independent trials
     steps_per_initialization = 200000,  # steps per trial
-    random_seed = nothing,
+    random_seed = 42,
 )
 
 results = run_batch(config)

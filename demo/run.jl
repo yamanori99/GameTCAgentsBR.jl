@@ -8,6 +8,9 @@
 #   case: l40one | l40 | l05 | l10 | l15 | l20 | l25 | l30 | l35 | l45
 #   mode: counts | traj
 #
+# Each case sets a fixed `random_seed` on `SimConfig` for reproducible default runs.
+# Override with `--seed N` (see `print_usage`).
+#
 # Usage:
 #   julia --project=demo demo/run.jl
 #   julia --project=demo demo/run.jl l20 counts
@@ -81,7 +84,7 @@ function _demo_setup(case::Symbol)
             matching = OnePair(),
             num_initializations = 10_000,
             steps_per_initialization = 5_000,
-            random_seed = nothing,
+            random_seed = 40_010,
         )
     elseif case == :l05
         # Run: julia --project=demo demo/run.jl l05 counts
@@ -105,7 +108,7 @@ function _demo_setup(case::Symbol)
             matching = OnePair(),
             num_initializations = 10_000,
             steps_per_initialization = 5_000,
-            random_seed = nothing,
+            random_seed = 5_001,
         )
     elseif case == :l10
         # Run: julia --project=demo demo/run.jl l10 counts
@@ -129,7 +132,7 @@ function _demo_setup(case::Symbol)
             matching = OnePair(),
             num_initializations = 10_000,
             steps_per_initialization = 5_000,
-            random_seed = nothing,
+            random_seed = 10_001,
         )
     elseif case == :l15
         # Run: julia --project=demo demo/run.jl l15 counts
@@ -153,7 +156,7 @@ function _demo_setup(case::Symbol)
             matching = OnePair(),
             num_initializations = 10_000,
             steps_per_initialization = 5_000,
-            random_seed = nothing,
+            random_seed = 15_001,
         )
     elseif case == :l20
         # Run: julia --project=demo demo/run.jl l20 counts
@@ -177,7 +180,7 @@ function _demo_setup(case::Symbol)
             matching = OnePair(),
             num_initializations = 10_000,
             steps_per_initialization = 5_000,
-            random_seed = nothing,
+            random_seed = 20_001,
         )
     elseif case == :l25
         # Run: julia --project=demo demo/run.jl l25 counts
@@ -201,7 +204,7 @@ function _demo_setup(case::Symbol)
             matching = OnePair(),
             num_initializations = 10_000,
             steps_per_initialization = 5_000,
-            random_seed = nothing,
+            random_seed = 25_001,
         )
     elseif case == :l30
         # Run: julia --project=demo demo/run.jl l30 counts
@@ -225,7 +228,7 @@ function _demo_setup(case::Symbol)
             matching = OnePair(),
             num_initializations = 10_000,
             steps_per_initialization = 5_000,
-            random_seed = nothing,
+            random_seed = 30_001,
         )
     elseif case == :l35
         # Run: julia --project=demo demo/run.jl l35 counts
@@ -249,7 +252,7 @@ function _demo_setup(case::Symbol)
             matching = OnePair(),
             num_initializations = 10_000,
             steps_per_initialization = 5_000,
-            random_seed = nothing,
+            random_seed = 35_001,
         )
     elseif case == :l40
         # Run: julia --project=demo demo/run.jl l40 counts
@@ -273,7 +276,7 @@ function _demo_setup(case::Symbol)
             matching = OnePair(),
             num_initializations = 10_000,
             steps_per_initialization = 5_000,
-            random_seed = nothing,
+            random_seed = 40_001,
         )
     elseif case == :l45
         # Run: julia --project=demo demo/run.jl l45 counts
@@ -297,7 +300,7 @@ function _demo_setup(case::Symbol)
             matching = OnePair(),
             num_initializations = 10_000,
             steps_per_initialization = 5_000,
-            random_seed = nothing,
+            random_seed = 45_001,
         )
     else
         throw(ArgumentError("unknown demo case: $(case)"))

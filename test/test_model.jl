@@ -10,6 +10,7 @@ using GameTCAgentsBR:
     _record_observation!,
     assign_groups,
     determine_strategy
+using Random: Xoshiro
 
 function _average_config(U; play_a = 1:3, play_b = 1:3)
     game = PairGame(["a", "b", "c"], U, play_a, play_b)
@@ -21,12 +22,12 @@ function _average_config(U; play_a = 1:3, play_b = 1:3)
     )
 end
 
-function _remembered_payoffs(config, mem, agent, opponent)
+function _remembered_payoffs(config, mem, agent, opponent, rng)
     n = config.num_strategies
     means = zeros(n)
     optimal = Vector{Int}(undef, n)
     chosen, n_opt, saw_memory = determine_strategy(
-        mem, agent, opponent, config, means, optimal,
+        mem, agent, opponent, config, means, optimal, rng,
     )
     return chosen, n_opt, saw_memory, means
 end
@@ -130,7 +131,7 @@ end
 
     @testset "AgentPopulation" begin
         config = SimConfig(game = TEST_GAME, num_agents = 100, group_a_ratio = 0.3)
-        pop = AgentPopulation(config)
+        pop = AgentPopulation(config, Xoshiro(1))
         @test length(pop.agents) == 100
         @test pop.group_a_indices == collect(1:30)
         @test pop.group_b_indices == collect(31:100)
@@ -141,7 +142,8 @@ end
             SimConfig(
                 game = TEST_GAME, num_agents = 20,
                 type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
-            )
+            ),
+            Xoshiro(1),
         )
         @test all(a.uses_type_conditioning for a in all_tc.agents)
 
@@ -149,7 +151,8 @@ end
             SimConfig(
                 game = TEST_GAME, num_agents = 20,
                 type_conditioning_ratio_a = 0.0, type_conditioning_ratio_b = 0.0,
-            )
+            ),
+            Xoshiro(1),
         )
         @test all(!a.uses_type_conditioning for a in none_tc.agents)
 
@@ -157,18 +160,19 @@ end
             SimConfig(
                 game = TEST_GAME, num_agents = 10, group_a_ratio = 0.4,
                 type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 0.0,
-            )
+            ),
+            Xoshiro(1),
         )
         @test all(a.uses_type_conditioning for a in by_group.agents if a.group == GROUP_A)
         @test all(!a.uses_type_conditioning for a in by_group.agents if a.group == GROUP_B)
 
         # One uniform draw per agent. Seed 202 and p = 0.5 yield 520 successes.
-        Random.seed!(202)
         partial = AgentPopulation(
             SimConfig(
                 game = TEST_GAME, num_agents = 1000,
                 type_conditioning_ratio_a = 0.5, type_conditioning_ratio_b = 0.5,
-            )
+            ),
+            Xoshiro(202),
         )
         tc_count = count(a.uses_type_conditioning for a in partial.agents)
         @test tc_count == 520
@@ -210,7 +214,7 @@ end
             game = TEST_GAME, num_agents = 10,
             type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
         )
-        pop = AgentPopulation(config)
+        pop = AgentPopulation(config, Xoshiro(1))
         mem = MemorySystem(config)
         agent1 = pop.agents[1]
         agent5 = pop.agents[5]
@@ -230,7 +234,7 @@ end
             game = response_game, num_agents = 10,
             type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
         )
-        response_pop = AgentPopulation(response_config)
+        response_pop = AgentPopulation(response_config, Xoshiro(1))
         response_mem = MemorySystem(response_config)
         for _ in 1:10
             _push_memory!(
@@ -240,7 +244,7 @@ end
         end
         strategy, num_optimal, has_mem = determine_strategy(
             response_mem, response_pop.agents[1], response_pop.agents[5],
-            response_config, payoffs, optimal_strategies,
+            response_config, payoffs, optimal_strategies, Xoshiro(1),
         )
         @test strategy == Int8(3)
         @test num_optimal == 1
@@ -260,7 +264,7 @@ end
             game = tie_game, num_agents = 10,
             type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
         )
-        tie_pop = AgentPopulation(tie_config)
+        tie_pop = AgentPopulation(tie_config, Xoshiro(1))
         tie_mem = MemorySystem(tie_config)
         _push_memory!(
             tie_mem.group_b_memories, tie_mem.group_b_idx, 1, Int8(1),
@@ -268,7 +272,7 @@ end
         )
         _, num_optimal, has_mem = determine_strategy(
             tie_mem, tie_pop.agents[1], tie_pop.agents[5],
-            tie_config, payoffs, optimal_strategies,
+            tie_config, payoffs, optimal_strategies, Xoshiro(1),
         )
         @test num_optimal == 3
         @test has_mem
@@ -284,7 +288,7 @@ end
             game = gap_game, num_agents = 10,
             type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
         )
-        gap_pop = AgentPopulation(gap_config)
+        gap_pop = AgentPopulation(gap_config, Xoshiro(1))
         gap_mem = MemorySystem(gap_config)
         _push_memory!(
             gap_mem.group_b_memories, gap_mem.group_b_idx, 1, Int8(1),
@@ -292,7 +296,7 @@ end
         )
         strategy, num_optimal, has_mem = determine_strategy(
             gap_mem, gap_pop.agents[1], gap_pop.agents[5],
-            gap_config, payoffs, optimal_strategies,
+            gap_config, payoffs, optimal_strategies, Xoshiro(1),
         )
         @test strategy == Int8(3)
         @test num_optimal == 1
@@ -305,8 +309,7 @@ end
         )
         @test (kept1, kept2) == (Int8(1), Int8(2))
 
-        Random.seed!(7)
-        pairs = match_agents(OnePair(), 1, mem, pop, config)
+        pairs = match_agents(OnePair(), 1, mem, pop, config, Xoshiro(7))
         @test length(pairs) == 1
         a1, a2 = only(pairs)
         @test a1 != a2
@@ -328,7 +331,7 @@ end
         @test !filled(trial.memory.common_memories[4, :])
 
         override_config = SimConfig(game = TEST_GAME, num_agents = 4, strategy_override = PlayMWhenEmpty())
-        override_pop = AgentPopulation(override_config)
+        override_pop = AgentPopulation(override_config, Xoshiro(1))
         override_mem = MemorySystem(override_config)
         empty_s1, empty_s2 = override_strategies(
             override_config.strategy_override,
@@ -368,7 +371,7 @@ end
         plain = Agent(1, GROUP_A, false)
         opponent_b = Agent(2, GROUP_B, true)
         strategy, num_optimal, has_mem = determine_strategy(
-            common_mem, plain, opponent_b, common_config, payoffs, optimal_strategies,
+            common_mem, plain, opponent_b, common_config, payoffs, optimal_strategies, Xoshiro(1),
         )
         @test strategy == Int8(3)
         @test num_optimal == 1
@@ -387,7 +390,7 @@ end
         limited_optimal = Vector{Int}(undef, 3)
         strategy, num_optimal, has_mem = determine_strategy(
             limited_mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true),
-            limited_config, limited_payoffs, limited_optimal,
+            limited_config, limited_payoffs, limited_optimal, Xoshiro(1),
         )
         @test strategy == Int8(3)
         @test num_optimal == 1
@@ -398,7 +401,7 @@ end
         _push_memory!(plain_limited.group_b_memories, plain_limited.group_b_idx, 1, Int8(1), 1)
         strategy, num_optimal, has_mem = determine_strategy(
             plain_limited, Agent(1, GROUP_A, false), Agent(2, GROUP_A, true),
-            limited_config, limited_payoffs, limited_optimal,
+            limited_config, limited_payoffs, limited_optimal, Xoshiro(1),
         )
         @test strategy == Int8(3)
         @test num_optimal == 1
@@ -427,7 +430,7 @@ end
         _push_memory!(mem.group_b_memories, mem.group_b_idx, 1, Int8(1), 4)
         _push_memory!(mem.group_b_memories, mem.group_b_idx, 1, Int8(2), 4)
         strategy, num_optimal, has_mem, payoffs = _remembered_payoffs(
-            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true),
+            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true), Xoshiro(1),
         )
         @test has_mem
         @test payoffs ≈ (U[:, 1] .+ U[:, 2]) ./ 2
@@ -442,7 +445,7 @@ end
             _push_memory!(mem.group_b_memories, mem.group_b_idx, 1, j, 4)
         end
         strategy, _, _, payoffs = _remembered_payoffs(
-            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true),
+            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true), Xoshiro(1),
         )
         @test payoffs ≈ (2 .* U[:, 1] .+ U[:, 2]) ./ 3
         @test !(payoffs ≈ (U[:, 1] .+ U[:, 2]) ./ 2)
@@ -455,17 +458,17 @@ end
         _push_memory!(mem.group_b_memories, mem.group_b_idx, 1, Int8(1), 4)
         _push_memory!(mem.common_memories, mem.common_idx, 1, Int8(3), 4)
         strategy, _, _, payoffs = _remembered_payoffs(
-            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true),
+            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true), Xoshiro(1),
         )
         @test payoffs ≈ U[:, 1]
         @test strategy == Int8(3)
         strategy, _, _, payoffs = _remembered_payoffs(
-            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_A, true),
+            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_A, true), Xoshiro(1),
         )
         @test payoffs ≈ U[:, 2]
         @test strategy == Int8(1)
         strategy, _, _, payoffs = _remembered_payoffs(
-            config, mem, Agent(1, GROUP_A, false), Agent(2, GROUP_B, true),
+            config, mem, Agent(1, GROUP_A, false), Agent(2, GROUP_B, true), Xoshiro(1),
         )
         @test payoffs ≈ (U[:, 1] .+ U[:, 2]) ./ 2
         @test !(payoffs ≈ (U[:, 1] .+ U[:, 2] .+ U[:, 3]) ./ 3)
@@ -476,7 +479,7 @@ end
         mem = MemorySystem(config)
         _push_memory!(mem.group_b_memories, mem.group_b_idx, 1, Int8(1), 4)
         strategy, num_optimal, _, payoffs = _remembered_payoffs(
-            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true),
+            config, mem, Agent(1, GROUP_A, true), Agent(2, GROUP_B, true), Xoshiro(1),
         )
         @test payoffs ≈ [1.0, 2.0, 0.0]
         @test strategy == Int8(2)
@@ -536,10 +539,34 @@ end
         @test result.memory isa MemorySystem
         @test haskey(result.counts, :a_remembers_b_slot_count)
 
-        again = run_simulation(config)
+        again = run_simulation(config; seed = 42)
         @test result.memory.group_a_memories == again.memory.group_a_memories
         @test result.memory.group_b_memories == again.memory.group_b_memories
         @test result.memory.common_memories == again.memory.common_memories
+
+        Random.seed!(12345)
+        expected = rand(3)
+        Random.seed!(12345)
+        run_simulation(config; seed = 999)
+        actual = rand(3)
+        @test expected == actual
+
+        override_ok = SimConfig(
+            game = TEST_GAME, num_agents = 4,
+            steps_per_initialization = 5,
+            strategy_override = PlayMWhenEmpty(),
+            random_seed = 1,
+        )
+        @test run_simulation(override_ok; seed = 1) isa TrialResult
+
+        limited = PairGame(["L", "M", "H"], TEST_DEMAND_PAYOFF, [1, 2, 3], [1, 2])
+        bad_override = SimConfig(
+            game = limited, num_agents = 4,
+            steps_per_initialization = 1,
+            strategy_override = ForceHForB(),
+            matching = FixedPair(2, 3),
+        )
+        @test_throws ArgumentError run_simulation(bad_override; seed = 1)
 
         callback_count = Ref(0)
         run_simulation(
@@ -548,5 +575,9 @@ end
             track_interval = 10,
         )
         @test callback_count[] == 10
+
+        no_seed = SimConfig(game = TEST_GAME, num_agents = 4, steps_per_initialization = 1)
+        @test_throws ArgumentError run_simulation(no_seed)
+        @test_throws ArgumentError run_simulation(no_seed; seed = nothing)
     end
 end

@@ -195,8 +195,8 @@ import GameTCAgentsBR: match_agents
 
 struct Round <: MatchingRule end
 
-function match_agents(::Round, _step, _memory, population, _config)
-    order = randperm(length(population.agents))
+function match_agents(::Round, _step, _memory, population, _config, rng)
+    order = randperm(rng, length(population.agents))
     n_pairs = length(order) ÷ 2
     pairs = Vector{Tuple{Int,Int}}(undef, n_pairs)
     for i in 1:n_pairs
@@ -239,16 +239,17 @@ Draw the partner from the same group with probability 0.8. An empty pool falls b
 
 ```julia
 using GameTCAgentsBR
+using Random
 import GameTCAgentsBR: match_agents
 
 struct SameGroupBias <: MatchingRule
     probability::Float64
 end
 
-function match_agents(rule::SameGroupBias, _step, _memory, population, _config)
+function match_agents(rule::SameGroupBias, _step, _memory, population, _config, rng)
     agents = population.agents
     n = length(agents)
-    a1 = rand(1:n)
+    a1 = rand(rng, 1:n)
     same = Int[]
     other = Int[]
     for i in 1:n
@@ -259,12 +260,12 @@ function match_agents(rule::SameGroupBias, _step, _memory, population, _config)
             push!(other, i)
         end
     end
-    prefer_same = rand() < rule.probability
+    prefer_same = rand(rng) < rule.probability
     pool = prefer_same ? same : other
     if isempty(pool)
         pool = prefer_same ? other : same
     end
-    return [(a1, rand(pool))]
+    return [(a1, rand(rng, pool))]
 end
 
 game = PairGame(
@@ -302,6 +303,8 @@ Best response to a nonempty memory; otherwise a uniform draw. `strategy_override
 ### Example `PlayMWhenEmpty`
 
 Add a method of `override_strategies` and pass it as `strategy_override`. The method that runs is dispatched on the type of the first argument. Use `NoOverride` when you are not making such a change.
+
+Each replacement strategy must lie in that agent's playable set (`playable_A` or `playable_B` for restricted games). `run_simulation` raises `ArgumentError` otherwise.
 
 The example below plays M (`2`) when the memory read for that opponent is empty. An empty slot is `Int8(-1)`.
 

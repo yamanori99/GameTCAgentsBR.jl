@@ -243,13 +243,15 @@ Manages agent collection with pre-computed group indices for efficient access.
 - `agents::Vector{Agent}`: All agents
 - `group_a_indices::Vector{Int}`: Indices of Group A agents
 - `group_b_indices::Vector{Int}`: Indices of Group B agents
+
+Build a population from `config`. Pass an `AbstractRNG` for type-conditioning draws.
 """
 struct AgentPopulation
     agents::Vector{Agent}
     group_a_indices::Vector{Int}
     group_b_indices::Vector{Int}
 
-    function AgentPopulation(config::SimConfig)
+    function AgentPopulation(config::SimConfig, rng::AbstractRNG)
         (; num_agents) = config
         groups = assign_groups(config)
 
@@ -264,7 +266,7 @@ struct AgentPopulation
             ratio = group == GROUP_A ?
                 config.type_conditioning_ratio_a :
                 config.type_conditioning_ratio_b
-            uses_tc = rand() < ratio
+            uses_tc = rand(rng) < ratio
             agents[i] = Agent(i, group, uses_tc)
             if group == GROUP_A
                 push!(group_a_indices, i)
@@ -365,7 +367,7 @@ const PAYOFF_TIE_EPS = 1.0e-10
     determine_strategy(memory::MemorySystem, agent::Agent, opponent::Agent,
                       config::SimConfig, payoffs::Vector{Float64},
                       optimal_strategies::Vector{Int},
-                      rng::AbstractRNG=Random.default_rng()) -> (Int8, Int, Bool)
+                      rng::AbstractRNG) -> (Int8, Int, Bool)
 
 Choose a strategy using memory for this encounter type.
 
@@ -376,8 +378,7 @@ Returns `(strategy, num_optimal, has_memory)` where:
 - `has_memory`: whether the relevant memory had any observations
 
 `payoffs` and `optimal_strategies` must be at least as long as `num_strategies`.
-`rng` supplies the random choice among tied or uninformed strategies. It defaults
-to the task-local RNG.
+`rng` supplies the random choice among tied or uninformed strategies.
 
 # Strategy Selection Rules
 1. If the relevant memory has observations:
@@ -395,7 +396,7 @@ function determine_strategy(
         config::SimConfig,
         payoffs::Vector{Float64},
         optimal_strategies::Vector{Int},
-        rng::AbstractRNG = Random.default_rng(),
+        rng::AbstractRNG,
     )
     playable = agent.group == GROUP_A ? config.game.playable_A : config.game.playable_B
 
@@ -486,6 +487,10 @@ Return the two strategies from `determine_strategy` unchanged.
 Called once per encounter. The other arguments are that encounter's trial
 state. `NoOverride` ignores them. Another `StrategyOverride` method may use
 them and return replacement strategies, which the trial then records.
+
+After this returns, `run_simulation` requires each strategy to lie in that
+agent's group playable set (`playable_A` or `playable_B`); otherwise it raises
+`ArgumentError`.
 """
 function override_strategies(
         ::NoOverride,
@@ -501,10 +506,32 @@ function override_strategies(
     return strategy1, strategy2
 end
 
-"""
-    match_agents(::OnePair, step, memory, population, config) -> Vector{Tuple{Int,Int}}
+"""Playable strategy indices for `agent`'s group."""
+function _playable_for(agent::Agent, game::PairGame)
+    return agent.group == GROUP_A ? game.playable_A : game.playable_B
+end
 
-One pair of distinct agent indices, drawn uniformly with the task-local RNG.
+"""
+    _assert_override_playable(agent, strategy, game)
+
+Require `strategy` to be an element of the playable set for `agent`'s group.
+"""
+function _assert_override_playable(agent::Agent, strategy::Int8, game::PairGame)
+    playable = _playable_for(agent, game)
+    s = Int(strategy)
+    any(==(s), playable) && return nothing
+    group_label = agent.group == GROUP_A ? "A" : "B"
+    throw(
+        ArgumentError(
+            "override_strategies returned strategy $s, which is not playable for group $group_label; allowed $playable",
+        ),
+    )
+end
+
+"""
+    match_agents(::OnePair, step, memory, population, config, rng) -> Vector{Tuple{Int,Int}}
+
+One pair of distinct agent indices, drawn uniformly with `rng`.
 
 Called once per step. The other arguments are that step's trial state.
 `OnePair` ignores them. Another `MatchingRule` method may use them and return
@@ -516,10 +543,11 @@ function match_agents(
         _memory::MemorySystem,
         population::AgentPopulation,
         _config::SimConfig,
+        rng::AbstractRNG,
     )
     n = length(population.agents)
-    a1 = rand(1:n)
-    temp = rand(1:(n - 1))
+    a1 = rand(rng, 1:n)
+    temp = rand(rng, 1:(n - 1))
     a2 = temp >= a1 ? temp + 1 : temp
     return [(a1, a2)]
 end
@@ -551,6 +579,17 @@ struct TrialResult
     memory::MemorySystem
 end
 
+function _require_simulation_seed(seed::Union{Int, Nothing})
+    seed === nothing &&
+        throw(
+        ArgumentError(
+            "run_simulation requires a seed; pass `run_simulation(config; seed = 1234)` or set `SimConfig(random_seed = 1234)`. " *
+                "For a random seed, generate it explicitly, e.g. `seed = rand(Random.RandomDevice(), Int)`",
+        ),
+    )
+    return seed
+end
+
 """
     run_simulation(config::SimConfig;
                    seed::Union{Int,Nothing}=config.random_seed,
@@ -558,8 +597,12 @@ end
                    track_interval::Int=1000) -> TrialResult
 
 Run one trial from `seed` and return that seed, the stopping-step memory
-counts, and the memory itself. A missing seed is drawn from `RandomDevice`.
+counts, and the memory itself. `seed` must be set via the keyword or
+`SimConfig.random_seed`; otherwise `ArgumentError`.
 This function does not test whether the process has converged.
+
+Random choices use a trial-local `Xoshiro(seed)`; the caller's default RNG is
+not modified.
 
 `track_callback` is `track_callback(step, memory, config, population)`.
 """
@@ -569,13 +612,11 @@ function run_simulation(
         track_callback = nothing,
         track_interval::Int = 1000,
     )
-    # A missing seed is drawn once from the OS.
-    seed = seed === nothing ? rand(Random.RandomDevice(), Int) : seed
-    # Fix the task-local RNG so later rand calls in this trial follow that seed.
-    Random.seed!(seed)
+    seed = _require_simulation_seed(seed)
+    rng = Random.Xoshiro(seed)
 
     # Initialize simulation state
-    population = AgentPopulation(config)
+    population = AgentPopulation(config, rng)
     memory = MemorySystem(config)
 
     # Pre-allocate working buffers (use max of both groups)
@@ -585,7 +626,7 @@ function run_simulation(
 
     # Run interactions
     for step in 1:config.steps_per_initialization
-        pairs = match_agents(config.matching, step, memory, population, config)
+        pairs = match_agents(config.matching, step, memory, population, config, rng)
         for (a1, a2) in pairs
             agent1 = population.agents[a1]
             agent2 = population.agents[a2]
@@ -597,6 +638,7 @@ function run_simulation(
                 config,
                 payoffs,
                 optimal_strategies,
+                rng,
             )
             strategy2, _, _ = determine_strategy(
                 memory,
@@ -605,6 +647,7 @@ function run_simulation(
                 config,
                 payoffs,
                 optimal_strategies,
+                rng,
             )
             # Optional replacement of the two chosen strategies. NoOverride leaves them unchanged.
             strategy1, strategy2 = override_strategies(
@@ -618,6 +661,8 @@ function run_simulation(
                 population,
                 config,
             )
+            _assert_override_playable(agent1, strategy1, config.game)
+            _assert_override_playable(agent2, strategy2, config.game)
 
             # Each agent records the opponent's strategy.
             _record_observation!(memory, agent1.id, strategy2, agent2.group, config)

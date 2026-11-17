@@ -157,6 +157,7 @@ function _count_strategies_against!(
             agent, opponent,
             step, memory, population, config,
         )
+        _assert_override_playable(agent, strategy, config.game)
         counts[Int(strategy)] += 1
     end
     return counts
@@ -173,7 +174,7 @@ function _share_copy(counts::Vector{Int}, n_agents::Int, n_strategies::Int)
 end
 
 """
-    sample_strategy_shares(memory, config, population, rng=Random.default_rng(); step)
+    sample_strategy_shares(memory, config, population, rng; step)
 
 Next-strategy shares against one representative opponent from each populated group.
 Each share counts the strategy returned by `override_strategies` at `step`.
@@ -185,7 +186,7 @@ function sample_strategy_shares(
         memory::MemorySystem,
         config::SimConfig,
         population::AgentPopulation,
-        rng::AbstractRNG = Random.default_rng();
+        rng::AbstractRNG;
         step::Int,
     )
     num_strategies = config.num_strategies

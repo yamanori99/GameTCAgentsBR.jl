@@ -3,7 +3,7 @@
 """
     _derive_trial_seeds(config, trial_seeds) -> Vector{Int}
 
-Return the given seeds, or draw one seed per trial.
+Return the given seeds, or derive one seed per trial from `config.random_seed`.
 """
 function _derive_trial_seeds(config::SimConfig, trial_seeds::Union{Nothing, Vector{Int}})
     if trial_seeds !== nothing
@@ -11,8 +11,16 @@ function _derive_trial_seeds(config::SimConfig, trial_seeds::Union{Nothing, Vect
             error("trial_seeds length must equal num_initializations")
         return trial_seeds
     end
-    base = config.random_seed === nothing ? rand(Random.RandomDevice(), Int) : config.random_seed
-    return rand(Random.Xoshiro(base), Int, config.num_initializations)
+    config.random_seed === nothing &&
+        throw(
+        ArgumentError(
+            "run_batch requires trial seeds; pass `run_batch(config; trial_seeds = [s1, s2, ...])` " *
+                "with one seed per initialization, or set `SimConfig(random_seed = 1234)` so seeds are derived from that base. " *
+                "For random seeds, generate them explicitly, e.g. " *
+                "`trial_seeds = rand(Xoshiro(rand(RandomDevice(), Int)), Int, config.num_initializations)`",
+        ),
+    )
+    return rand(Random.Xoshiro(config.random_seed), Int, config.num_initializations)
 end
 
 """
@@ -63,9 +71,8 @@ end
              track_with_population::Bool=false,
              on_trial_complete::Union{Function,Nothing}=nothing) -> NamedTuple
 
-Run one `run_simulation` per trial seed. Without `trial_seeds`, the seeds are
-drawn from `Xoshiro(config.random_seed)`, or from a fresh base seed when that
-is unset.
+Run one `run_simulation` per trial seed. Without `trial_seeds`, seeds are
+derived from `Xoshiro(config.random_seed)`; `config.random_seed` must be set.
 
 `a_remembers_b_trial_count[i]` is how many trials ended with A remembering
 B strategy `i`. The other fields are `<observer>_remembers_<actor>_trial_count`.
