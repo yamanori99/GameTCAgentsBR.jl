@@ -4,16 +4,16 @@ using GameTCAgentsBR
 U = [2.0 2.0 2.0; 5.0 5.0 0.0; 8.0 0.0 0.0]
 a = [0, 0, 0, 0, 100]
 b = [0, 0, 0, 0, 100]
-error = nothing
+caught = nothing
 try
     compute_payoff_outcome(a, b, U)
 catch e
-    global error = e
+    global caught = e
 end
-if error isa BoundsError &&
+if caught isa BoundsError &&
         length(a) == length(b) &&
         length(a) != size(U, 1)
     println("REPRODUCED payoff-equal-length-no-throw")
 else
-    error("expected BoundsError on equal 5-vectors with 3x3 U, got $(repr(error))")
+    error("expected BoundsError on equal 5-vectors with 3x3 U, got $(repr(caught))")
 end

@@ -6,14 +6,14 @@ config = SimConfig(
     game = game, num_agents = 2, group_a_ratio = 0.5,
     steps_per_initialization = 1, random_seed = 1,
 )
-error = nothing
+caught = nothing
 try
     run_simulation(config; seed = 1)
 catch e
-    global error = e
+    global caught = e
 end
-if error isa InexactError
+if caught isa InexactError
     println("REPRODUCED pairgame-128-strategies")
 else
-    error("expected InexactError for Int8(128), got $(repr(error))")
+    error("expected InexactError for Int8(128), got $(repr(caught))")
 end

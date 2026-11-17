@@ -82,13 +82,14 @@ function main()
     repro_results = Dict{String, Tuple{String, String}}()
     failures = String[]
     drift = String[]
+    refuted_repros = Set(values(refuted_map) .|> first)
 
     for f in repro_files
         path = joinpath(REPRO_DIR, f)
         repro, status, out, err = run_repro(path)
         combined = out * err
         repro_results[f] = (status, combined)
-        if status != "ok"
+        if status != "ok" && !(f in refuted_repros)
             push!(failures, "$f: julia exit non-zero")
         end
     end
@@ -98,8 +99,7 @@ function main()
             push!(drift, "$rid: missing repro $repro")
             continue
         end
-        status, combined = repro_results[repro]
-        status == "ok" || continue
+        _, combined = repro_results[repro]
         if !occursin(expected, combined)
             push!(drift, "$rid: expected `$expected` in output of $repro")
         end
