@@ -15,7 +15,7 @@ From that record, the agent chooses an optimal strategy for the next game.
 
 > [!NOTE]
 > This implementation substantially generalizes and extends the simulation code of O'Connor (2017). See that paper.
-> This simulator was designed to handle the Nash demand game, and the demos and tests use that game.
+> The package accepts any `PairGame` payoff matrix. The CLI demo (`demo/run.jl`) uses a Nash demand configuration as a literature reference.
 
 ## Simulation procedure
 
@@ -93,7 +93,7 @@ println(results.b_remembers_b_trial_count)
 ```
 
 The output lists, from the top, strategies A played against B, strategies B played against A, strategies within A, and strategies within B.
-Each line is a `Vector{Int}` of trial counts for L, M, and H, in that order.
+Each line is a `Vector{Int}` of trial counts in the order of `game.labels` (here L, M, H).
 
 ### Track one trial
 
@@ -140,7 +140,7 @@ end
 
 The examples above give both groups every strategy. `U[i, j]` is the payoff of strategy `i` against strategy `j`. The names are the order of the result vectors. They are not used when a strategy is chosen.
 
-B can be kept from playing H. `U` stays `3 × 3`.
+B can be restricted to a subset of strategies (for example, not playing the third). `U` stays `3 × 3`.
 
 ```julia
 U = [
@@ -235,7 +235,7 @@ println(results.b_remembers_b_trial_count)
 
 ### Example 2 `SameGroupBias`
 
-Draw the partner from the same group with probability 0.8. An empty pool falls back to the other group.
+Draw the partner from the same group with probability 0.8. If the preferred pool is empty (for example `group_a_ratio = 0.0` with same-group preference), the example raises `ArgumentError` instead of silently switching pools; implement an explicit fallback in your own rule if you need one.
 
 ```julia
 using GameTCAgentsBR
@@ -262,9 +262,11 @@ function match_agents(rule::SameGroupBias, _step, _memory, population, _config, 
     end
     prefer_same = rand(rng) < rule.probability
     pool = prefer_same ? same : other
-    if isempty(pool)
-        pool = prefer_same ? other : same
-    end
+    isempty(pool) &&
+        throw(ArgumentError(
+            "SameGroupBias: no partner in the $(prefer_same ? "same" : "other")-group pool; " *
+                "use group_a_ratio > 0 with both groups populated, or add an explicit fallback",
+        ))
     return [(a1, rand(rng, pool))]
 end
 
@@ -366,47 +368,10 @@ println(results.a_remembers_a_trial_count)
 println(results.b_remembers_b_trial_count)
 ```
 
-### Tracking `PlayMWhenEmpty`
-
-Record next-strategy shares during one trial.
+With the same `PlayMWhenEmpty` definition, record next-strategy shares during one trial:
 
 ```julia
-using GameTCAgentsBR
-using Random
-import GameTCAgentsBR: override_strategies
-
-struct PlayMWhenEmpty <: StrategyOverride end
-
-function row_has_observation(memory, agent, opponent)
-    if agent.uses_type_conditioning
-        row = if opponent.group == GROUP_A
-            memory.group_a_memories[agent.id, :]
-        else
-            memory.group_b_memories[agent.id, :]
-        end
-        return any(!=(Int8(-1)), row)
-    end
-    return any(!=(Int8(-1)), memory.group_a_memories[agent.id, :]) ||
-        any(!=(Int8(-1)), memory.group_b_memories[agent.id, :])
-end
-
-function override_strategies(::PlayMWhenEmpty, strategy1, strategy2, agent1, agent2,
-        step, memory, population, config)
-    if !row_has_observation(memory, agent1, agent2)
-        strategy1 = Int8(2)
-    end
-    if !row_has_observation(memory, agent2, agent1)
-        strategy2 = Int8(2)
-    end
-    return strategy1, strategy2
-end
-
-game = PairGame(
-    ["L", "M", "H"],
-    [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
-)
-
-config = SimConfig(
+track_config = SimConfig(
     game = game,
     num_agents = 100,
     group_a_ratio = 0.3,
@@ -423,12 +388,12 @@ config = SimConfig(
 )
 
 path = NamedTuple[]
-rng = Xoshiro(config.random_seed)
+rng = Xoshiro(track_config.random_seed)
 function record(step, memory, config, population)
     shares = sample_strategy_shares(memory, config, population, rng; step)
     push!(path, (; step, shares...))
 end
-run_simulation(config; seed = config.random_seed, track_callback = record, track_interval = 100)
+run_simulation(track_config; seed = track_config.random_seed, track_callback = record, track_interval = 100)
 for sample in path
     println(sample.step, " ", sample.group_a_against_group_b)
 end

@@ -5,8 +5,8 @@ GameTCAgentsBR.jl simulates repeated pairwise play in a finite population.
 Each agent records opponent strategies in a finite memory and can keep a separate
 memory for each opponent group. A run takes a `PairGame` and a `SimConfig`.
 `run_simulation` returns a `TrialResult`. `run_batch` returns
-trial counts and each `TrialResult`. The simulator was designed to configure
-the Nash demand game, and the demos and tests use that game.
+trial counts and each `TrialResult`. Any square payoff `PairGame` is supported;
+the CLI demo (`demo/run.jl`) reproduces a Nash demand configuration as a reference example.
 
 # Extended From
 
@@ -26,7 +26,7 @@ This implementation builds upon the following works (in order of importance):
 4. Cochran, C., & O'Connor, C. (2019). Inequality and inequity in the emergence of conventions.
    Politics, Philosophy & Economics, 18(3), 264–281.
    https://doi.org/10.1177/1470594X19828371
-   (Implementation reference - extended Nash demand game ABM)
+   (Implementation reference - ABM for demand-style games)
 
 # Public surface
 
@@ -41,8 +41,8 @@ using GameTCAgentsBR
 
 config = SimConfig(
     game = PairGame(
-        ["L", "M", "H"],
-        [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+        ["low", "mid", "high"],
+        [2.0 2.0 2.0; 3.0 3.0 0.0; 4.0 0.0 0.0],
     ),
     num_agents = 500,  # population size
     group_a_ratio = 0.3,  # Group A: minority (30%)

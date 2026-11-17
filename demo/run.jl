@@ -695,9 +695,9 @@ function _print_inequality_analysis(io::IO, rec::ShareSeries, config::SimConfig)
     final_ab_counts = round.(Int, rec.group_a_against_group_b[end] .* n_a)
     final_ba_counts = round.(Int, rec.group_b_against_group_a[end] .* n_b)
     final_result = compute_payoff_outcome(final_ab_counts, final_ba_counts, config.game.U)
-    advantage_str = final_result.advantage == :fair ? "approximately equal" :
-        final_result.advantage == :a_advantage ? "A payoff higher" :
-        final_result.advantage == :b_advantage ? "B payoff higher" :
+    advantage_str = final_result.advantage == :balanced ? "approximately equal" :
+        final_result.advantage == :payoff_a_higher ? "A payoff higher" :
+        final_result.advantage == :payoff_b_higher ? "B payoff higher" :
         "Unknown"
     @printf(
         io,
