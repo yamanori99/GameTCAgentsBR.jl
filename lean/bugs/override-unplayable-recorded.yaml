@@ -1,0 +1,38 @@
+id: override-unplayable-recorded
+title: "StrategyOverride can persist unplayable strategies in memory"
+priority: P2
+kind: wrong-result
+area: model
+files: [src/model.jl]
+functions: ["override_strategies", "_record_observation!(...)"]
+summary: |
+  A custom StrategyOverride can return strategy 3 for Group B when playable_B
+  is [1,2]; the trial records that value with no validation.
+likelihood: |
+  Any user-defined override (documented extension point) can write illegal codes;
+  downstream memory counts and payoff summaries may treat them as valid indices.
+maybe_intended: |
+  Overrides are trusted user code; playable sets might only constrain determination,
+  not recording.
+reproducer: lean/repro/override-unplayable-recorded.jl
+output:
+  release: |
+    REPRODUCED override-unplayable-recorded
+reproduced: {release: true, nightly: true}
+expected: |
+  Recorded strategies should lie in playable sets for the acting group, or docs
+  should state overrides are unconstrained.
+promised_by: |
+  PairGame doc: play_a/play_b are strategies each group can play; README examples.
+  src/model.jl:14-16
+cause: |
+  _record_observation! writes override output without checking playables; src/model.jl:604-619
+possible_fix: |
+  Validate strategy ∈ playable after override, or document that overrides bypass playability.
+duplicates:
+  issues: []
+  queries: ["StrategyOverride playable", "record observation strategy"]
+lean:
+  property: GameTCLean.Proofs.overrideUnplayableRecordedProp
+  theorem: GameTCLean.Proofs.overrideUnplayableRecorded_refuted
+covers: []

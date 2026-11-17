@@ -21,3 +21,6 @@ Thumbs.db
 *.tmp
 *.bak
 *.log
+
+# Lean 4 build artifacts
+lean/.lake/
