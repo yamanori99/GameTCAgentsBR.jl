@@ -1,5 +1,8 @@
 # Memory counts, payoff summary, and strategy shares.
 
+"""Relative tolerance for `compute_payoff_outcome` payoff balance (1%)."""
+const PAYOFF_BALANCE_REL_TOL = 0.01
+
 """
     _accumulate_strategy_counts!(counts, mem_view, num_strategies_max)
 
@@ -67,8 +70,11 @@ function applies to the shared square payoff `U`: if A uses strategy `i` and B
 uses strategy `j`, their payoffs are `U[i, j]` and `U[j, i]`.
 
 `payoff_gap` is the relative absolute difference
-`|payoff_A - payoff_B| / (|payoff_A| + |payoff_B|)`. `advantage = :fair` when
-`abs(payoff_A - payoff_B) < 0.01 * max(payoff_A, payoff_B, 0.01)`.
+`|payoff_A - payoff_B| / (|payoff_A| + |payoff_B|)`. `advantage = :balanced` when
+`abs(payoff_A - payoff_B) < PAYOFF_BALANCE_REL_TOL * max(payoff_A, payoff_B, 0.01)`
+(`PAYOFF_BALANCE_REL_TOL` is `0.01`, i.e. a 1% band). Otherwise
+`advantage` is `:payoff_a_higher`, `:payoff_b_higher`, or `:unknown` when either
+count vector sums to zero.
 """
 function compute_payoff_outcome(
         a_strategy_counts::AbstractVector{<:Integer},
@@ -76,10 +82,10 @@ function compute_payoff_outcome(
         payoff_matrix::Matrix{Float64}
     )
     n = size(payoff_matrix, 1)
-    @argcheck size(payoff_matrix, 2) == n "payoff matrix must be square"
+    @argcheck size(payoff_matrix, 2) == n "compute_payoff_outcome: payoff_matrix must be square (got $(size(payoff_matrix))); pass an n×n matrix"
     len_a = length(a_strategy_counts)
     len_b = length(b_strategy_counts)
-    @argcheck len_a == n && len_b == n "strategy count vector lengths must match payoff matrix size ($n); got $len_a and $len_b"
+    @argcheck len_a == n && len_b == n "compute_payoff_outcome: count vector lengths must equal payoff matrix size ($n); got a_strategy_counts length $len_a and b_strategy_counts length $len_b — e.g. `zeros(Int, $n)` for each side"
 
     a_total = sum(a_strategy_counts)
     b_total = sum(b_strategy_counts)
@@ -110,13 +116,13 @@ function compute_payoff_outcome(
         payoff_gap = abs(payoff_A - payoff_B) / total_magnitude
     end
 
-    ε = 0.01 * max(payoff_A, payoff_B, 0.01)
+    ε = PAYOFF_BALANCE_REL_TOL * max(payoff_A, payoff_B, 0.01)
     if abs(payoff_A - payoff_B) < ε
-        advantage = :fair
+        advantage = :balanced
     elseif payoff_A > payoff_B
-        advantage = :a_advantage
+        advantage = :payoff_a_higher
     else
-        advantage = :b_advantage
+        advantage = :payoff_b_higher
     end
 
     return (

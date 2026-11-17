@@ -559,7 +559,7 @@ end
         )
         @test run_simulation(override_ok; seed = 1) isa TrialResult
 
-        limited = PairGame(["L", "M", "H"], TEST_DEMAND_PAYOFF, [1, 2, 3], [1, 2])
+        limited = PairGame(["s1", "s2", "s3"], TEST_PAYOFF_3, [1, 2, 3], [1, 2])
         bad_override = SimConfig(
             game = limited, num_agents = 4,
             steps_per_initialization = 1,

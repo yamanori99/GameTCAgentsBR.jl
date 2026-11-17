@@ -3,13 +3,13 @@
 using GameTCAgentsBR: GROUP_A, GROUP_B, MEMORY_PLACEHOLDER
 import GameTCAgentsBR: match_agents, override_strategies
 
-const TEST_DEMAND_PAYOFF = [
-    4.5 4.5 4.5
-    5.0 5.0 0.0
-    5.5 0.0 0.0
+const TEST_PAYOFF_3 = [
+    2.0 2.0 2.0
+    3.0 3.0 0.0
+    4.0 0.0 0.0
 ]
 
-const TEST_GAME = PairGame(["L", "M", "H"], TEST_DEMAND_PAYOFF)
+const TEST_GAME = PairGame(["s1", "s2", "s3"], TEST_PAYOFF_3)
 
 function pairgame(M::AbstractMatrix)
     return PairGame(string.(1:size(M, 1)), M)

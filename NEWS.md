@@ -2,6 +2,8 @@
 
 ## 0.2.0 (unreleased)
 
+- **`compute_payoff_outcome`**: `advantage` symbols are renamed to `:balanced`, `:payoff_a_higher`, and `:payoff_b_higher` (replacing `:fair`, `:a_advantage`, and `:b_advantage`). The 1% balance band is documented via internal constant `PAYOFF_BALANCE_REL_TOL` (`0.01`). No aliases.
+- **Errors**: `run_batch` mismatched `trial_seeds` now raises `ArgumentError` (not `error(...)`). Constructor and analysis validation messages state what failed, which field, and how to fix (with examples).
 - **`compute_payoff_outcome`**: Count vectors must have the same length as each dimension of a square payoff matrix; mismatched, shorter, or longer vectors now raise `ArgumentError` instead of returning wrong payoffs or throwing `BoundsError`.
 - **`compute_payoff_outcome`**: The return value no longer includes `L_value` (use `payoff_matrix[1, 1]` when you need that quantity).
 - **`PairGame`**: Games with more than 127 strategies now raise `ArgumentError` at construction (memory stores strategy codes as `Int8`).
