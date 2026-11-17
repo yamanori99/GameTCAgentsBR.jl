@@ -24,7 +24,7 @@ struct FixedPair <: MatchingRule
     a2::Int
 end
 
-function match_agents(rule::FixedPair, _step, _memory, _population, _config, _rng = Random.default_rng())
+function match_agents(rule::FixedPair, _step, _memory, _population, _config, _rng)
     return [(rule.a1, rule.a2)]
 end
 

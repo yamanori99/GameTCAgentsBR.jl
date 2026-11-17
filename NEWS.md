@@ -7,7 +7,11 @@
 - **`PairGame`**: Games with more than 127 strategies now raise `ArgumentError` at construction (memory stores strategy codes as `Int8`).
 - **`compute_payoff_outcome`**: Zero total payoff magnitude uses an exact zero check (`iszero`) rather than approximate equality.
 - **`run_simulation`**: Uses a trial-local `Xoshiro(seed)` instead of `Random.seed!`, so the caller's default RNG is unchanged. The same integer seed no longer reproduces 0.1.x memory trajectories.
-- **`match_agents`**: `run_simulation` passes a sixth argument `rng::AbstractRNG`. Custom `MatchingRule` methods must add this parameter (typically last, with default `Random.default_rng()` if you want standalone calls to keep working). A 0.1.x five-argument signature raises `MethodError` during a trial.
+- **`match_agents`**: `run_simulation` passes a sixth argument `rng::AbstractRNG`. Custom `MatchingRule` methods must add this parameter (no default). A 0.1.x five-argument signature raises `MethodError` during a trial.
+- **`AgentPopulation`**: The one-argument `AgentPopulation(config)` constructor is removed. Pass `AgentPopulation(config, rng)` (for example `AgentPopulation(config, Xoshiro(seed))`).
+- **`determine_strategy`**: The `rng` argument is required (no default `Random.default_rng()`).
+- **`run_simulation`**: A missing seed (`seed` keyword and `config.random_seed` both `nothing`) raises `ArgumentError` instead of drawing from `RandomDevice`. Set `random_seed = 1234` on `SimConfig`, call `run_simulation(config; seed = 1234)`, or generate a seed explicitly (for example `seed = rand(Random.RandomDevice(), Int)`).
+- **`run_batch`**: Without `trial_seeds`, `config.random_seed` must be set; otherwise `ArgumentError`. Explicit `trial_seeds = [s1, s2, ...]` remains valid when `random_seed` is unset.
 - **`override_strategies`**: After an override, each returned strategy must belong to that agent's group playable set (`playable_A` / `playable_B`); otherwise `run_simulation` and `sample_strategy_shares` raise `ArgumentError`.
 
 ## 0.1.2

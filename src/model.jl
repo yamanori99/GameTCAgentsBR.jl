@@ -244,8 +244,7 @@ Manages agent collection with pre-computed group indices for efficient access.
 - `group_a_indices::Vector{Int}`: Indices of Group A agents
 - `group_b_indices::Vector{Int}`: Indices of Group B agents
 
-`AgentPopulation(config)` uses `Random.default_rng()` for type-conditioning draws.
-Pass `AgentPopulation(config, rng)` when you need a specific RNG.
+Build a population from `config`. Pass an `AbstractRNG` for type-conditioning draws.
 """
 struct AgentPopulation
     agents::Vector{Agent}
@@ -279,8 +278,6 @@ struct AgentPopulation
         return new(agents, group_a_indices, group_b_indices)
     end
 end
-
-AgentPopulation(config::SimConfig) = AgentPopulation(config, Random.default_rng())
 
 # Empty memory slot
 const MEMORY_PLACEHOLDER = Int8(-1)
@@ -370,7 +367,7 @@ const PAYOFF_TIE_EPS = 1.0e-10
     determine_strategy(memory::MemorySystem, agent::Agent, opponent::Agent,
                       config::SimConfig, payoffs::Vector{Float64},
                       optimal_strategies::Vector{Int},
-                      rng::AbstractRNG=Random.default_rng()) -> (Int8, Int, Bool)
+                      rng::AbstractRNG) -> (Int8, Int, Bool)
 
 Choose a strategy using memory for this encounter type.
 
@@ -381,8 +378,7 @@ Returns `(strategy, num_optimal, has_memory)` where:
 - `has_memory`: whether the relevant memory had any observations
 
 `payoffs` and `optimal_strategies` must be at least as long as `num_strategies`.
-`rng` supplies the random choice among tied or uninformed strategies. It defaults
-to the task-local RNG.
+`rng` supplies the random choice among tied or uninformed strategies.
 
 # Strategy Selection Rules
 1. If the relevant memory has observations:
@@ -400,7 +396,7 @@ function determine_strategy(
         config::SimConfig,
         payoffs::Vector{Float64},
         optimal_strategies::Vector{Int},
-        rng::AbstractRNG = Random.default_rng(),
+        rng::AbstractRNG,
     )
     playable = agent.group == GROUP_A ? config.game.playable_A : config.game.playable_B
 
@@ -583,6 +579,17 @@ struct TrialResult
     memory::MemorySystem
 end
 
+function _require_simulation_seed(seed::Union{Int, Nothing})
+    seed === nothing &&
+        throw(
+        ArgumentError(
+            "run_simulation requires a seed; pass `run_simulation(config; seed = 1234)` or set `SimConfig(random_seed = 1234)`. " *
+                "For a random seed, generate it explicitly, e.g. `seed = rand(Random.RandomDevice(), Int)`",
+        ),
+    )
+    return seed
+end
+
 """
     run_simulation(config::SimConfig;
                    seed::Union{Int,Nothing}=config.random_seed,
@@ -590,7 +597,8 @@ end
                    track_interval::Int=1000) -> TrialResult
 
 Run one trial from `seed` and return that seed, the stopping-step memory
-counts, and the memory itself. A missing seed is drawn from `RandomDevice`.
+counts, and the memory itself. `seed` must be set via the keyword or
+`SimConfig.random_seed`; otherwise `ArgumentError`.
 This function does not test whether the process has converged.
 
 Random choices use a trial-local `Xoshiro(seed)`; the caller's default RNG is
@@ -604,8 +612,7 @@ function run_simulation(
         track_callback = nothing,
         track_interval::Int = 1000,
     )
-    # A missing seed is drawn once from the OS.
-    seed = seed === nothing ? rand(Random.RandomDevice(), Int) : seed
+    seed = _require_simulation_seed(seed)
     rng = Random.Xoshiro(seed)
 
     # Initialize simulation state

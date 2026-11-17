@@ -195,7 +195,7 @@ import GameTCAgentsBR: match_agents
 
 struct Round <: MatchingRule end
 
-function match_agents(::Round, _step, _memory, population, _config, rng=Random.default_rng())
+function match_agents(::Round, _step, _memory, population, _config, rng)
     order = randperm(rng, length(population.agents))
     n_pairs = length(order) ÷ 2
     pairs = Vector{Tuple{Int,Int}}(undef, n_pairs)
@@ -246,7 +246,7 @@ struct SameGroupBias <: MatchingRule
     probability::Float64
 end
 
-function match_agents(rule::SameGroupBias, _step, _memory, population, _config, rng=Random.default_rng())
+function match_agents(rule::SameGroupBias, _step, _memory, population, _config, rng)
     agents = population.agents
     n = length(agents)
     a1 = rand(rng, 1:n)

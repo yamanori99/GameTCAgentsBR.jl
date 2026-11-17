@@ -160,7 +160,7 @@ end
     @testset "group indices for trajectory reps" begin
         _, config = _demo_setup(:l45)
         config = _fast_config(config)
-        population = AgentPopulation(config)
+        population = AgentPopulation(config, Random.Xoshiro(1))
         mem = MemorySystem(config)
         rec = ShareSeries(1, Random.Xoshiro(1))
         rec(1, mem, config, population)

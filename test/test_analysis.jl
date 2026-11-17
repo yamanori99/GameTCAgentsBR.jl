@@ -121,6 +121,7 @@ end
         second = run_batch(seeded; trial_seeds)
         @test first.a_remembers_b_trial_count == second.a_remembers_b_trial_count
         @test_throws ErrorException run_batch(seeded; trial_seeds = [1, 2])
+        @test_throws ArgumentError run_batch(seeded)
 
         callback_data = []
         run_batch(
@@ -219,7 +220,7 @@ end
             memory_length_for_group_a = 2,
             memory_length_for_group_b = 2,
         )
-        population = AgentPopulation(config)
+        population = AgentPopulation(config, Random.Xoshiro(1))
         memory = MemorySystem(config)
         for agent_id in population.group_a_indices
             _push_memory!(memory.group_a_memories, memory.group_a_idx, agent_id, Int8(1), config.memory_length_for_group_a)
@@ -235,7 +236,7 @@ end
             type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
         )
         one_shares = sample_strategy_shares(
-            MemorySystem(one_group), one_group, AgentPopulation(one_group), Random.Xoshiro(1); step = 1,
+            MemorySystem(one_group), one_group, AgentPopulation(one_group, Random.Xoshiro(1)), Random.Xoshiro(1); step = 1,
         )
         @test isempty(one_shares.group_a_against_group_a)
         @test isempty(one_shares.group_a_against_group_b)
@@ -247,7 +248,7 @@ end
             strategy_override = PlayMWhenEmpty(),
         )
         empty_shares = sample_strategy_shares(
-            MemorySystem(empty_override), empty_override, AgentPopulation(empty_override),
+            MemorySystem(empty_override), empty_override, AgentPopulation(empty_override, Random.Xoshiro(1)),
             Random.Xoshiro(1); step = 1,
         )
         @test empty_shares.group_a_against_group_b ≈ [0.0, 1.0, 0.0]
@@ -257,7 +258,7 @@ end
             game = limited_game, num_agents = 4, group_a_ratio = 0.25,
             strategy_override = ForceHForActingB(),
         )
-        bad_shares_pop = AgentPopulation(bad_shares)
+        bad_shares_pop = AgentPopulation(bad_shares, Random.Xoshiro(1))
         @test_throws ArgumentError sample_strategy_shares(
             MemorySystem(bad_shares), bad_shares, bad_shares_pop, Random.Xoshiro(1); step = 1,
         )
