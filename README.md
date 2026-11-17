@@ -67,12 +67,14 @@ using GameTCAgentsBR
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -106,12 +108,14 @@ using Random
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -176,7 +180,7 @@ game = PairGame(
 
 Positional args: `[case] [mode]` (`l45` and `counts` apply when omitted). Cases start with `l40one`, then `l40`, then `l05` … `l45` except `l40` is not repeated (Nash demand `L = 0.5 … 4.5`). Trajectory mode is `traj` only (`trajectory` is rejected).
 
-`l40one` matches `l40` with `group_a_ratio = 0` (every agent is Group B).
+`l40one` matches `l40` with `group_a_size = 0` (every agent is Group B).
 
 `counts` counts trials in which each strategy occurs in memory at the stopping step. `traj` shows sampled next-strategy shares from one trial. A one-group case plots only that group's within-group series.
 
@@ -208,12 +212,14 @@ end
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -235,7 +241,7 @@ println(results.b_remembers_b_trial_count)
 
 ### Example 2 `SameGroupBias`
 
-Draw the partner from the same group with probability 0.8. If the preferred pool is empty (for example `group_a_ratio = 0.0` with same-group preference), the example raises `ArgumentError` instead of silently switching pools; implement an explicit fallback in your own rule if you need one.
+Draw the partner from the same group with probability 0.8. If the preferred pool is empty (for example `group_a_size = 0` with same-group preference), the example raises `ArgumentError` instead of silently switching pools; implement an explicit fallback in your own rule if you need one.
 
 ```julia
 using GameTCAgentsBR
@@ -265,7 +271,7 @@ function match_agents(rule::SameGroupBias, _step, _memory, population, _config, 
     isempty(pool) &&
         throw(ArgumentError(
             "SameGroupBias: no partner in the $(prefer_same ? "same" : "other")-group pool; " *
-                "use group_a_ratio > 0 with both groups populated, or add an explicit fallback",
+                "use group_a_size > 0 with both groups populated, or add an explicit fallback",
         ))
     return [(a1, rand(rng, pool))]
 end
@@ -273,12 +279,14 @@ end
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -343,12 +351,14 @@ end
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -374,7 +384,7 @@ With the same `PlayMWhenEmpty` definition, record next-strategy shares during on
 track_config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,

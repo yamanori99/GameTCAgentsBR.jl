@@ -9,15 +9,13 @@ const MEMORY_STRATEGY_ELTYPE = Int8
 const MAX_NUM_STRATEGIES = typemax(MEMORY_STRATEGY_ELTYPE)
 
 """
-    PairGame(U)
-    PairGame(labels, U, play_a=1:n, play_b=1:n)
+    PairGame(labels, U, play_a, play_b)
 
 One strategy set and one row-player payoff matrix. `U[i, j]` is the payoff of
 strategy `i` against strategy `j`. The opponent's payoff is `U[j, i]`.
 
 `labels` names the rows for display. It is not used when a strategy is chosen.
-`play_a` and `play_b` are the strategies each group can play. Both default to
-every index of `U`.
+`play_a` and `play_b` are the strategy indices each group can play (required).
 """
 struct PairGame
     labels::Vector{String}
@@ -46,13 +44,11 @@ end
 function PairGame(
         labels::AbstractVector{<:AbstractString},
         U::AbstractMatrix{<:Real},
-        play_a = 1:size(U, 1),
-        play_b = 1:size(U, 1),
+        play_a::AbstractVector{<:Integer},
+        play_b::AbstractVector{<:Integer},
     )
     return PairGame(String.(labels), Matrix{Float64}(U), collect(Int, play_a), collect(Int, play_b))
 end
-
-PairGame(U::AbstractMatrix{<:Real}) = PairGame(string.(1:size(U, 1)), U)
 
 """Algorithm that may replace the two strategies chosen for an encounter."""
 abstract type StrategyOverride end
@@ -66,43 +62,50 @@ abstract type MatchingRule end
 """One uniformly chosen pair of distinct agents per step."""
 struct OnePair <: MatchingRule end
 
-_group_a_size(num_agents, group_a_ratio) =
-    min(round(Int, num_agents * group_a_ratio), num_agents ÷ 2)
+function _required_simconfig_kw(name::Symbol, value, example::String)
+    value === missing &&
+        throw(ArgumentError("SimConfig requires `$(name)`; e.g. $(example)"))
+    return value
+end
 
 """
-    SimConfig(; game, ...)
+    SimConfig(; game, num_agents, group_a_size, ...)
 
-Simulation configuration. `game` is a required `PairGame`.
+Simulation configuration. Every model-defining keyword is required at
+construction (see the fields below). Only `strategy_override` (default
+`NoOverride()`), `matching` (default `OnePair()`), and `random_seed` (default
+`nothing`, meaning you must pass a seed to `run_simulation` / `run_batch`) may
+be omitted.
+
 `type_conditioning_ratio_a` and `type_conditioning_ratio_b` are probabilities in
-`[0, 1]`. Both default to `1.0`. `group_a_ratio` is in `[0, 0.5]` (0 leaves Group A empty).
-`num_agents` must be at least 2. `group_a_size` is
-`min(round(Int, num_agents * group_a_ratio), num_agents ÷ 2)` (ties round to
-even). Group A is never larger than Group B. When `group_a_ratio` is `0.5`
-and `num_agents` is odd, the groups cannot be equal and a warning is emitted.
-`num_strategies` must equal `size(game.U, 1)`. A keyword that disagrees with
-either derived value raises `ArgumentError`.
+`[0, 1]`. `group_a_size` is the number of Group A agents (may be `0`); there is
+no `group_a_ratio` — 0.1.x rounded a ratio inside the package, which could
+shift the population by one agent (Float vs exact rational rounding) and only
+warn on odd halves at `0.5`. Pass the count you intend, e.g. `group_a_size = 6
+# 30% of 20` or `group_a_size = round(Int, 0.3 * num_agents)`. Group A must not
+be larger than Group B: `group_a_size <= num_agents ÷ 2`. `num_agents` must be
+at least 2 unless `group_a_size == 0` and Group B is nonempty
+(`group_a_size < num_agents`).
 """
-@kwdef struct SimConfig{O <: StrategyOverride, M <: MatchingRule}
+struct SimConfig{O <: StrategyOverride, M <: MatchingRule}
     game::PairGame
-    num_agents::Int = 200
-    group_a_ratio::Float64 = 0.3
-    type_conditioning_ratio_a::Float64 = 1.0
-    type_conditioning_ratio_b::Float64 = 1.0
-    memory_length_for_group_a::Int = 10
-    memory_length_for_group_b::Int = 10
-    common_memory_length::Int = 20
-    strategy_override::O = NoOverride()
-    matching::M = OnePair()
-    num_initializations::Int = 10000
-    steps_per_initialization::Int = 200000
-    random_seed::Union{Int, Nothing} = nothing
-    group_a_size::Int = _group_a_size(num_agents, group_a_ratio)
-    num_strategies::Int = size(game.U, 1)
+    num_agents::Int
+    group_a_size::Int
+    type_conditioning_ratio_a::Float64
+    type_conditioning_ratio_b::Float64
+    memory_length_for_group_a::Int
+    memory_length_for_group_b::Int
+    common_memory_length::Int
+    strategy_override::O
+    matching::M
+    num_initializations::Int
+    steps_per_initialization::Int
+    random_seed::Union{Int, Nothing}
 
     function SimConfig{O, M}(
             game::PairGame,
             num_agents::Int,
-            group_a_ratio::Float64,
+            group_a_size::Int,
             type_conditioning_ratio_a::Float64,
             type_conditioning_ratio_b::Float64,
             memory_length_for_group_a::Int,
@@ -113,40 +116,26 @@ either derived value raises `ArgumentError`.
             num_initializations::Int,
             steps_per_initialization::Int,
             random_seed::Union{Int, Nothing},
-            group_a_size::Int,
-            num_strategies::Int,
         ) where {O <: StrategyOverride, M <: MatchingRule}
         @argcheck 0.0 <= type_conditioning_ratio_a <= 1.0 &&
             0.0 <=
             type_conditioning_ratio_b <=
             1.0 "SimConfig: type_conditioning_ratio_a and type_conditioning_ratio_b must lie in [0, 1] (probabilities of opponent-group-specific memory); got a=$type_conditioning_ratio_a, b=$type_conditioning_ratio_b"
-        @argcheck num_agents >= 2 "SimConfig: num_agents must be at least 2 for pairwise matching (got $num_agents); e.g. `SimConfig(game = g, num_agents = 100)`"
-        @argcheck 0.0 <= group_a_ratio <= 0.5 "SimConfig: group_a_ratio must be in [0, 0.5] so Group A is never larger than Group B (got $group_a_ratio); e.g. `group_a_ratio = 0.3`"
+        @argcheck num_agents >= 2 "SimConfig: num_agents must be at least 2 for pairwise matching (got $num_agents); e.g. `num_agents = 100`"
         @argcheck memory_length_for_group_a > 0 "SimConfig: memory_length_for_group_a must be positive (got $memory_length_for_group_a); e.g. `memory_length_for_group_a = 10`"
         @argcheck memory_length_for_group_b > 0 "SimConfig: memory_length_for_group_b must be positive (got $memory_length_for_group_b); e.g. `memory_length_for_group_b = 10`"
         @argcheck common_memory_length > 0 "SimConfig: common_memory_length must be positive (got $common_memory_length); e.g. `common_memory_length = 20`"
         @argcheck num_initializations > 0 "SimConfig: num_initializations must be positive (got $num_initializations); e.g. `num_initializations = 100`"
         @argcheck steps_per_initialization > 0 "SimConfig: steps_per_initialization must be positive (got $steps_per_initialization); e.g. `steps_per_initialization = 10_000`"
-        # Unreachable while group_a_ratio >= 0 and the size equals the derived value.
-        @argcheck group_a_size >= 0 "SimConfig: group_a_size must be non-negative (got $group_a_size)"
-        @argcheck group_a_size ==
-            _group_a_size(num_agents, group_a_ratio) "SimConfig: group_a_size ($group_a_size) must match min(round(Int, num_agents * group_a_ratio), num_agents ÷ 2) (= $(_group_a_size(num_agents, group_a_ratio)) for num_agents=$num_agents, group_a_ratio=$group_a_ratio); omit group_a_size and let SimConfig derive it"
-        # Unreachable while the size equals the derived value (capped at n ÷ 2).
+        @argcheck group_a_size >= 0 "SimConfig: group_a_size must be non-negative (got $group_a_size); e.g. `group_a_size = 30` with `num_agents = 100`"
         @argcheck 2 * group_a_size <=
             num_agents "SimConfig: Group A size ($group_a_size) cannot exceed Group B; require 2 * group_a_size <= num_agents ($num_agents)"
-        # Unreachable while group_a_ratio <= 0.5. Kept if that upper bound is relaxed.
         @argcheck group_a_size <
-            num_agents "SimConfig: group_a_ratio would leave Group B empty (group_a_size=$group_a_size, num_agents=$num_agents); lower group_a_ratio or increase num_agents"
-        @argcheck num_strategies ==
-            size(game.U, 1) "SimConfig: num_strategies ($num_strategies) must equal size(game.U, 1) (= $(size(game.U, 1))); omit num_strategies or set it to the game's row count"
-        if group_a_ratio == 0.5 && isodd(num_agents)
-            n_b = num_agents - group_a_size
-            @warn "group_a_ratio = 0.5 with odd num_agents: groups cannot be equal" num_agents group_a_size n_b maxlog = 1
-        end
+            num_agents "SimConfig: group_a_size ($group_a_size) must leave at least one Group B agent (need group_a_size < num_agents=$num_agents); use `group_a_size = 0` for a one-group run"
         return new{O, M}(
             game,
             num_agents,
-            group_a_ratio,
+            group_a_size,
             type_conditioning_ratio_a,
             type_conditioning_ratio_b,
             memory_length_for_group_a,
@@ -157,33 +146,62 @@ either derived value raises `ArgumentError`.
             num_initializations,
             steps_per_initialization,
             random_seed,
-            group_a_size,
-            num_strategies,
         )
     end
 end
 
-function SimConfig(
-        game::PairGame,
-        num_agents::Int,
-        group_a_ratio::Float64,
-        type_conditioning_ratio_a::Float64,
-        type_conditioning_ratio_b::Float64,
-        memory_length_for_group_a::Int,
-        memory_length_for_group_b::Int,
-        common_memory_length::Int,
-        strategy_override::O,
-        matching::M,
-        num_initializations::Int,
-        steps_per_initialization::Int,
-        random_seed::Union{Int, Nothing},
-        group_a_size::Int,
-        num_strategies::Int,
-    ) where {O <: StrategyOverride, M <: MatchingRule}
+function SimConfig(;
+        game = missing,
+        num_agents = missing,
+        group_a_size = missing,
+        type_conditioning_ratio_a = missing,
+        type_conditioning_ratio_b = missing,
+        memory_length_for_group_a = missing,
+        memory_length_for_group_b = missing,
+        common_memory_length = missing,
+        strategy_override = NoOverride(),
+        matching = OnePair(),
+        num_initializations = missing,
+        steps_per_initialization = missing,
+        random_seed = nothing,
+    )
+    game = _required_simconfig_kw(:game, game, "game = PairGame([\"L\", \"M\", \"H\"], U, play_a, play_b)")
+    num_agents = _required_simconfig_kw(:num_agents, num_agents, "num_agents = 500")
+    group_a_size = _required_simconfig_kw(:group_a_size, group_a_size, "group_a_size = 150")
+    type_conditioning_ratio_a = _required_simconfig_kw(
+        :type_conditioning_ratio_a, type_conditioning_ratio_a,
+        "type_conditioning_ratio_a = 1.0",
+    )
+    type_conditioning_ratio_b = _required_simconfig_kw(
+        :type_conditioning_ratio_b, type_conditioning_ratio_b,
+        "type_conditioning_ratio_b = 1.0",
+    )
+    memory_length_for_group_a = _required_simconfig_kw(
+        :memory_length_for_group_a, memory_length_for_group_a,
+        "memory_length_for_group_a = 10",
+    )
+    memory_length_for_group_b = _required_simconfig_kw(
+        :memory_length_for_group_b, memory_length_for_group_b,
+        "memory_length_for_group_b = 10",
+    )
+    common_memory_length = _required_simconfig_kw(
+        :common_memory_length, common_memory_length,
+        "common_memory_length = 20",
+    )
+    num_initializations = _required_simconfig_kw(
+        :num_initializations, num_initializations,
+        "num_initializations = 10_000",
+    )
+    steps_per_initialization = _required_simconfig_kw(
+        :steps_per_initialization, steps_per_initialization,
+        "steps_per_initialization = 200_000",
+    )
+    O = typeof(strategy_override)
+    M = typeof(matching)
     return SimConfig{O, M}(
         game,
         num_agents,
-        group_a_ratio,
+        group_a_size,
         type_conditioning_ratio_a,
         type_conditioning_ratio_b,
         memory_length_for_group_a,
@@ -194,10 +212,15 @@ function SimConfig(
         num_initializations,
         steps_per_initialization,
         random_seed,
-        group_a_size,
-        num_strategies,
     )
 end
+
+"""
+    num_strategies(config) -> Int
+
+Row count of `config.game.U` (the number of strategies in the payoff matrix).
+"""
+num_strategies(config::SimConfig) = size(config.game.U, 1)
 
 """
     assign_groups(config) -> Vector{Int8}
@@ -627,7 +650,7 @@ function run_simulation(
     memory = MemorySystem(config)
 
     # Pre-allocate working buffers (use max of both groups)
-    num_strategies_max = config.num_strategies
+    num_strategies_max = num_strategies(config)
     payoffs = zeros(Float64, num_strategies_max)
     optimal_strategies = Vector{Int}(undef, num_strategies_max)
 

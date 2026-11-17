@@ -66,12 +66,14 @@ using GameTCAgentsBR
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -106,12 +108,14 @@ using Random
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -176,7 +180,7 @@ game = PairGame(
 
 位置引数は `[case] [mode]` で、省略時はそれぞれ `l45` と `counts` である。ケースは `l40one`、次に `l40`、その後 `l05` から `l45` までで、`l40` は繰り返さない (ナッシュ要求の `L = 0.5 … 4.5`)。軌跡モードは `traj` のみ (`trajectory` は不可)。
 
-`l40one` は `l40` と同じで、`group_a_ratio = 0` (全員が Group B) である。
+`l40one` は `l40` と同じで、`group_a_size = 0`（全員が Group B）である。
 
 `counts` は、停止ステップの記憶に各戦略が現れた試行を数える。`traj` は、1 試行からサンプリングした次の戦略のシェアを示す。一集団のケースが描くのは、その集団の集団内系列だけである。
 
@@ -208,12 +212,14 @@ end
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -235,7 +241,7 @@ println(results.b_remembers_b_trial_count)
 
 ### 例2 `SameGroupBias`
 
-同じ集団と確率 0.8 で組にする。希望したプールが空のとき（例: `group_a_ratio = 0.0` で同集団優先）は、もう一方へ黙って切り替えず `ArgumentError` を出す。フォールバックが必要なら独自のルールで明示する。
+同じ集団と確率 0.8 で組にする。希望したプールが空のとき（例: `group_a_size = 0` で同集団優先）は、もう一方へ黙って切り替えず `ArgumentError` を出す。フォールバックが必要なら独自のルールで明示する。
 
 ```julia
 using GameTCAgentsBR
@@ -265,7 +271,7 @@ function match_agents(rule::SameGroupBias, _step, _memory, population, _config, 
     isempty(pool) &&
         throw(ArgumentError(
             "SameGroupBias: no partner in the $(prefer_same ? "same" : "other")-group pool; " *
-                "use group_a_ratio > 0 with both groups populated, or add an explicit fallback",
+                "use group_a_size > 0 with both groups populated, or add an explicit fallback",
         ))
     return [(a1, rand(rng, pool))]
 end
@@ -273,12 +279,14 @@ end
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -343,12 +351,14 @@ end
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -374,7 +384,7 @@ println(results.b_remembers_b_trial_count)
 track_config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
