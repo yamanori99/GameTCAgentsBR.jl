@@ -76,7 +76,7 @@ function _demo_setup(case::Symbol)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_size = 0,
+            group_a_size = 0, # 0 of 20 (one-group run)
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -100,7 +100,7 @@ function _demo_setup(case::Symbol)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_size = 6,
+            group_a_size = 6, # 30% of 20
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -124,7 +124,7 @@ function _demo_setup(case::Symbol)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_size = 6,
+            group_a_size = 6, # 30% of 20
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -148,7 +148,7 @@ function _demo_setup(case::Symbol)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_size = 6,
+            group_a_size = 6, # 30% of 20
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -172,7 +172,7 @@ function _demo_setup(case::Symbol)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_size = 6,
+            group_a_size = 6, # 30% of 20
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -196,7 +196,7 @@ function _demo_setup(case::Symbol)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_size = 6,
+            group_a_size = 6, # 30% of 20
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -220,7 +220,7 @@ function _demo_setup(case::Symbol)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_size = 6,
+            group_a_size = 6, # 30% of 20
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -244,7 +244,7 @@ function _demo_setup(case::Symbol)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_size = 6,
+            group_a_size = 6, # 30% of 20
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -268,7 +268,7 @@ function _demo_setup(case::Symbol)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_size = 6,
+            group_a_size = 6, # 30% of 20
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -292,7 +292,7 @@ function _demo_setup(case::Symbol)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_size = 6,
+            group_a_size = 6, # 30% of 20
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,

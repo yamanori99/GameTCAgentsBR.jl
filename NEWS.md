@@ -5,7 +5,7 @@
 ### Fail closed (explicit configuration)
 
 - **`SimConfig`**: Model-defining keywords (`num_agents`, `group_a_size`, type-conditioning ratios, memory lengths, trial counts, and steps) have no defaults; omitting one raises `ArgumentError` naming the field and an example. Only `strategy_override` (`NoOverride()`), `matching` (`OnePair()`), and `random_seed` (`nothing`) may be omitted.
-- **`SimConfig`**: `group_a_ratio` is removed. Set `group_a_size` explicitly (agent count in Group A, not a fraction). The odd-`num_agents` `@warn` for a 50/50 ratio is gone with the ratio field.
+- **`SimConfig`**: `group_a_ratio` is removed; set `group_a_size` (agent count in Group A, not a fraction). 0.1.x derived the size with `round` plus `min` against half the population, which silently changed sizes (e.g. `25 × 0.3 → 7.5`). A Lean check over exact rationals found **607** pairs with `num_agents ≤ 10⁴` where the Float-based recipe differed from exact rational rounding by one agent. Odd `num_agents` with ratio `0.5` only printed a `@warn` instead of making the split explicit. **Migration:** write `group_a_size = 6  # 30% of 20`, or compute the count in your script, e.g. `group_a_size = round(Int, 0.3 * num_agents)`, so any rounding is visible in your code.
 - **`SimConfig`**: The `num_strategies` field is removed. Use `num_strategies(config)` (`size(game.U, 1)`).
 - **`PairGame`**: Only `PairGame(labels, U, play_a, play_b)` remains. `play_a` and `play_b` are required (no all-strategies default). `PairGame(U)` and keyword defaults for playable sets raise `MethodError`; pass `1:n` explicitly.
 - **`count_final_strategies`**: Out-of-range strategy codes in memory raise `ArgumentError` with agent and slot (placeholder `-1` slots remain ignored).

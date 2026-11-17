@@ -78,9 +78,13 @@ construction (see the fields below). Only `strategy_override` (default
 be omitted.
 
 `type_conditioning_ratio_a` and `type_conditioning_ratio_b` are probabilities in
-`[0, 1]`. `group_a_size` is the number of Group A agents (may be `0`). Group A
-must not be larger than Group B: `group_a_size <= num_agents ÷ 2`. `num_agents`
-must be at least 2 unless `group_a_size == 0` and Group B is nonempty
+`[0, 1]`. `group_a_size` is the number of Group A agents (may be `0`); there is
+no `group_a_ratio` — 0.1.x rounded a ratio inside the package, which could
+shift the population by one agent (Float vs exact rational rounding) and only
+warn on odd halves at `0.5`. Pass the count you intend, e.g. `group_a_size = 6
+# 30% of 20` or `group_a_size = round(Int, 0.3 * num_agents)`. Group A must not
+be larger than Group B: `group_a_size <= num_agents ÷ 2`. `num_agents` must be
+at least 2 unless `group_a_size == 0` and Group B is nonempty
 (`group_a_size < num_agents`).
 """
 struct SimConfig{O <: StrategyOverride, M <: MatchingRule}
