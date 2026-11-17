@@ -10,7 +10,7 @@ using GameTCAgentsBR:
     _record_observation!,
     assign_groups,
     determine_strategy
-using Random: MersenneTwister, Xoshiro
+using Random: Xoshiro
 
 function _average_config(U; play_a = 1:3, play_b = 1:3)
     game = PairGame(["a", "b", "c"], U, play_a, play_b)
@@ -541,11 +541,11 @@ end
         @test result.memory.group_b_memories == again.memory.group_b_memories
         @test result.memory.common_memories == again.memory.common_memories
 
-        caller_rng = MersenneTwister(12345)
-        expected = [rand(caller_rng) for _ in 1:3]
-        repeat_rng = MersenneTwister(12345)
+        Random.seed!(12345)
+        expected = rand(3)
+        Random.seed!(12345)
         run_simulation(config; seed = 999)
-        actual = [rand(repeat_rng) for _ in 1:3]
+        actual = rand(3)
         @test expected == actual
 
         override_ok = SimConfig(

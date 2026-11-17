@@ -56,3 +56,10 @@ function override_strategies(::ForceHForB, s1, s2, _a1, a2, _step, _mem, _pop, _
     a2.group == GROUP_B && (s2 = Int8(3))
     return s1, s2
 end
+
+struct ForceHForActingB <: StrategyOverride end
+
+function override_strategies(::ForceHForActingB, s1, s2, a1, _a2, _step, _mem, _pop, _cfg)
+    a1.group == GROUP_B && (s1 = Int8(3))
+    return s1, s2
+end

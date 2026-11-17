@@ -243,6 +243,9 @@ Manages agent collection with pre-computed group indices for efficient access.
 - `agents::Vector{Agent}`: All agents
 - `group_a_indices::Vector{Int}`: Indices of Group A agents
 - `group_b_indices::Vector{Int}`: Indices of Group B agents
+
+`AgentPopulation(config)` uses `Random.default_rng()` for type-conditioning draws.
+Pass `AgentPopulation(config, rng)` when you need a specific RNG.
 """
 struct AgentPopulation
     agents::Vector{Agent}
@@ -513,18 +516,18 @@ function _playable_for(agent::Agent, game::PairGame)
 end
 
 """
-    _assert_override_playable!(agent, strategy, game)
+    _assert_override_playable(agent, strategy, game)
 
 Require `strategy` to be an element of the playable set for `agent`'s group.
 """
-function _assert_override_playable!(agent::Agent, strategy::Int8, game::PairGame)
+function _assert_override_playable(agent::Agent, strategy::Int8, game::PairGame)
     playable = _playable_for(agent, game)
     s = Int(strategy)
     any(==(s), playable) && return nothing
     group_label = agent.group == GROUP_A ? "A" : "B"
     throw(
         ArgumentError(
-            "strategy $s is not playable for group $group_label; allowed $playable",
+            "override_strategies returned strategy $s, which is not playable for group $group_label; allowed $playable",
         ),
     )
 end
@@ -651,8 +654,8 @@ function run_simulation(
                 population,
                 config,
             )
-            _assert_override_playable!(agent1, strategy1, config.game)
-            _assert_override_playable!(agent2, strategy2, config.game)
+            _assert_override_playable(agent1, strategy1, config.game)
+            _assert_override_playable(agent2, strategy2, config.game)
 
             # Each agent records the opponent's strategy.
             _record_observation!(memory, agent1.id, strategy2, agent2.group, config)

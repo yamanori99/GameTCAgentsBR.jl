@@ -7,7 +7,8 @@
 - **`PairGame`**: Games with more than 127 strategies now raise `ArgumentError` at construction (memory stores strategy codes as `Int8`).
 - **`compute_payoff_outcome`**: Zero total payoff magnitude uses an exact zero check (`iszero`) rather than approximate equality.
 - **`run_simulation`**: Uses a trial-local `Xoshiro(seed)` instead of `Random.seed!`, so the caller's default RNG is unchanged. The same integer seed no longer reproduces 0.1.x memory trajectories.
-- **`override_strategies`**: After an override, each returned strategy must belong to that agent's group playable set (`playable_A` / `playable_B`); otherwise `run_simulation` raises `ArgumentError`.
+- **`match_agents`**: `run_simulation` passes a sixth argument `rng::AbstractRNG`. Custom `MatchingRule` methods must add this parameter (typically last, with default `Random.default_rng()` if you want standalone calls to keep working). A 0.1.x five-argument signature raises `MethodError` during a trial.
+- **`override_strategies`**: After an override, each returned strategy must belong to that agent's group playable set (`playable_A` / `playable_B`); otherwise `run_simulation` and `sample_strategy_shares` raise `ArgumentError`.
 
 ## 0.1.2
 

@@ -252,6 +252,16 @@ end
         )
         @test empty_shares.group_a_against_group_b ≈ [0.0, 1.0, 0.0]
 
+        limited_game = PairGame(["L", "M", "H"], TEST_DEMAND_PAYOFF, [1, 2, 3], [1, 2])
+        bad_shares = SimConfig(
+            game = limited_game, num_agents = 4, group_a_ratio = 0.25,
+            strategy_override = ForceHForActingB(),
+        )
+        bad_shares_pop = AgentPopulation(bad_shares)
+        @test_throws ArgumentError sample_strategy_shares(
+            MemorySystem(bad_shares), bad_shares, bad_shares_pop, Random.Xoshiro(1); step = 1,
+        )
+
         fast = SimConfig(
             game = TEST_GAME, num_agents = 6, group_a_ratio = 0.5,
             type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,

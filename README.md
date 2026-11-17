@@ -239,6 +239,7 @@ Draw the partner from the same group with probability 0.8. An empty pool falls b
 
 ```julia
 using GameTCAgentsBR
+using Random
 import GameTCAgentsBR: match_agents
 
 struct SameGroupBias <: MatchingRule

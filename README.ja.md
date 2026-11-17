@@ -239,6 +239,7 @@ println(results.b_remembers_b_trial_count)
 
 ```julia
 using GameTCAgentsBR
+using Random
 import GameTCAgentsBR: match_agents
 
 struct SameGroupBias <: MatchingRule
