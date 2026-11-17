@@ -14,6 +14,7 @@ import GameTCLean.Proofs.Analysis
 import GameTCLean.Proofs.BatchExtra
 import GameTCLean.Proofs.NoOverride
 import GameTCLean.Proofs.PairGame
+import GameTCLean.Proofs.RationalMean
 
 namespace GameTCLean.Registry
 
@@ -76,8 +77,14 @@ def all : List Entry := [
     `GameTCLean.Proofs.groupASizeBoundedByHalfProp `GameTCLean.Proofs.groupASizeBoundedByHalf_holds,
   mkEntry "tie-eps-includes-near-best" "src/model.jl" ["determine_strategy"] "Strategies within PAYOFF_TIE_EPS of the best mean are included." "test/test_model.jl tie eps" .proven
     `GameTCLean.Proofs.tieEpsIncludesNearBestProp `GameTCLean.Proofs.tieEpsIncludesNearBest_holds,
-  mkEntry "tie-eps-equals-exact" "src/model.jl" ["determine_strategy", "_add_remembered_payoffs!"] "Epsilon tie set equals exact float argmax set." "lean/repro/tie-eps-widens-set.jl" .refuted
+  mkEntry "tie-eps-equals-exact-float" "src/model.jl" ["determine_strategy"] "Epsilon tie set equals float exact-equality argmax." "lean/repro/tie-eps-widens-set.jl" .refuted
     `GameTCLean.Proofs.tieEpsEqualsExactProp `GameTCLean.Proofs.tieEpsEqualsExact_refuted,
+  mkEntry "float-eps-equals-rational-argmax" "src/model.jl" ["determine_strategy", "_add_remembered_payoffs!"] "Float PAYOFF_TIE_EPS set equals ℚ argmax (decimal payoffs)." "lean/repro/rational-vs-float-br-search.jl" .refuted
+    `GameTCLean.Proofs.floatEpsEqualsRationalArgmaxProp `GameTCLean.Proofs.floatEpsEqualsRationalArgmax_refuted,
+  mkEntry "rational-argmax-no-eps-drop" "src/model.jl" ["determine_strategy"] "Float eps set never strictly smaller than ℚ argmax." "lean/repro/rational-vs-float-br-no-smaller.jl" .proven
+    `GameTCLean.Proofs.rationalArgmaxSubsetFloatEpsEmpiricalProp `GameTCLean.Proofs.rationalArgmaxSubsetFloatEpsEmpirical_holds,
+  mkEntry "mean-gap-beats-tie-eps" "src/model.jl" ["determine_strategy"] "Distinct ℚ means on q-grid with m obs satisfy 1/(qm) > PAYOFF_TIE_EPS for m≤40, q∈{10,100}." "Lean Nat witness" .proven
+    `GameTCLean.Proofs.meanGapBeatsEpsProp `GameTCLean.Proofs.meanGapBeatsEps_holds,
   mkEntry "exact-argmax-subset-eps" "src/model.jl" ["determine_strategy"] "Exact argmax ⊆ epsilon tie set (concrete FP means)." "FP counterexample" .proven
     `GameTCLean.Proofs.exactArgmaxSubsetConcreteProp `GameTCLean.Proofs.exactArgmaxSubsetConcrete_holds,
   mkEntry "dyadic-eps-agreement" "src/model.jl" ["determine_strategy"] "Exact argmax ⊆ epsilon set for tied dyadic means." "tie model" .proven
