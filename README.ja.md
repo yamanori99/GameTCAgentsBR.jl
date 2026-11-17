@@ -172,9 +172,9 @@ game = PairGame(
 
 `demo/run.jl` は、この利得でエージェント20、5000ステップ、seedなしである。
 
-`julia --project=demo demo/run.jl` は、既定の `l45 counts` を実行する。
+`julia --project=demo demo/run.jl` を引数なしで実行すると、usage を stderr に出力して終了コード 2 で終了する。ケースとモードを渡す (例: `julia --project=demo demo/run.jl l45 counts`)。
 
-位置引数は `[case] [mode]` である。ケースは `l40one`、次に `l40`、その後 `l05` から `l45` までで、`l40` は繰り返さない (ナッシュ要求の `L = 0.5 … 4.5`)。
+位置引数は `[case] [mode]` で、省略時はそれぞれ `l45` と `counts` である。ケースは `l40one`、次に `l40`、その後 `l05` から `l45` までで、`l40` は繰り返さない (ナッシュ要求の `L = 0.5 … 4.5`)。軌跡モードは `traj` のみ (`trajectory` は不可)。
 
 `l40one` は `l40` と同じで、`group_a_ratio = 0` (全員が Group B) である。
 
