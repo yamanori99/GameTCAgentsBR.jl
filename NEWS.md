@@ -1,6 +1,6 @@
 # Release notes
 
-## 0.2.0
+## 0.2.0 (unreleased)
 
 - **`compute_payoff_outcome`**: Count vectors must have the same length as each dimension of a square payoff matrix; mismatched, shorter, or longer vectors now raise `ArgumentError` instead of returning wrong payoffs or throwing `BoundsError`.
 - **`compute_payoff_outcome`**: The return value no longer includes `L_value` (use `payoff_matrix[1, 1]` when you need that quantity).
