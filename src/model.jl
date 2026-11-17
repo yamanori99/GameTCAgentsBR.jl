@@ -522,9 +522,11 @@ function _assert_override_playable!(agent::Agent, strategy::Int8, game::PairGame
     s = Int(strategy)
     any(==(s), playable) && return nothing
     group_label = agent.group == GROUP_A ? "A" : "B"
-    throw(ArgumentError(
-        "strategy $s is not playable for group $group_label; allowed $playable",
-    ))
+    throw(
+        ArgumentError(
+            "strategy $s is not playable for group $group_label; allowed $playable",
+        ),
+    )
 end
 
 """
