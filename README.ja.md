@@ -66,12 +66,14 @@ using GameTCAgentsBR
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -106,12 +108,14 @@ using Random
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -176,7 +180,7 @@ game = PairGame(
 
 位置引数は `[case] [mode]` である。ケースは `l40one`、次に `l40`、その後 `l05` から `l45` までで、`l40` は繰り返さない (ナッシュ要求の `L = 0.5 … 4.5`)。
 
-`l40one` は `l40` と同じで、`group_a_ratio = 0` (全員が Group B) である。
+`l40one` は `l40` と同じで、`group_a_size = 0`（全員が Group B）である。
 
 `counts` は、停止ステップの記憶に各戦略が現れた試行を数える。`traj` は、1 試行からサンプリングした次の戦略のシェアを示す。一集団のケースが描くのは、その集団の集団内系列だけである。
 
@@ -208,12 +212,14 @@ end
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -271,12 +277,14 @@ end
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -341,12 +349,14 @@ end
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,
@@ -404,12 +414,14 @@ end
 game = PairGame(
     ["L", "M", "H"],
     [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+    1:3,
+    1:3,
 )
 
 config = SimConfig(
     game = game,
     num_agents = 100,
-    group_a_ratio = 0.3,
+    group_a_size = 30,
     type_conditioning_ratio_a = 1.0,
     type_conditioning_ratio_b = 1.0,
     memory_length_for_group_a = 10,

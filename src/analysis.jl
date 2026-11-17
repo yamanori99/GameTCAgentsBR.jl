@@ -1,17 +1,28 @@
 # Memory counts, payoff summary, and strategy shares.
 
 """
-    _accumulate_strategy_counts!(counts, mem_view, num_strategies_max)
+    _accumulate_strategy_counts!(counts, mem_view, num_strategies_max, agent_id)
 
 Add one to `counts[s]` for each filled slot holding strategy `s`.
+Out-of-range codes raise `ArgumentError` naming the agent and slot.
 """
-function _accumulate_strategy_counts!(counts::Vector{Int}, mem_view, num_strategies_max::Int)
-    for strategy in mem_view
-        if strategy != MEMORY_PLACEHOLDER
-            s = Int(strategy)
-            if 1 <= s <= num_strategies_max
-                counts[s] += 1
-            end
+function _accumulate_strategy_counts!(
+        counts::Vector{Int},
+        mem_view,
+        num_strategies_max::Int,
+        agent_id::Int,
+    )
+    for (slot, strategy) in pairs(mem_view)
+        strategy == MEMORY_PLACEHOLDER && continue
+        s = Int(strategy)
+        if 1 <= s <= num_strategies_max
+            counts[s] += 1
+        else
+            throw(
+                ArgumentError(
+                    "strategy code $s at agent $agent_id memory slot $slot is outside 1:$num_strategies_max",
+                ),
+            )
         end
     end
     return nothing
@@ -30,7 +41,7 @@ A's memory slots hold B strategy `i`. The other fields are
 slots are counted separately. Common memory is not counted.
 """
 function count_final_strategies(memory::MemorySystem, config::SimConfig)
-    num_strategies_max = config.num_strategies
+    num_strategies_max = num_strategies(config)
 
     aa_counts = zeros(Int, num_strategies_max)
     ab_counts = zeros(Int, num_strategies_max)
@@ -41,11 +52,11 @@ function count_final_strategies(memory::MemorySystem, config::SimConfig)
     for agent_id in 1:config.num_agents
         agent_group = groups[agent_id]
         if agent_group == GROUP_A
-            _accumulate_strategy_counts!(aa_counts, @view(memory.group_a_memories[agent_id, :]), num_strategies_max)
-            _accumulate_strategy_counts!(ab_counts, @view(memory.group_b_memories[agent_id, :]), num_strategies_max)
+            _accumulate_strategy_counts!(aa_counts, @view(memory.group_a_memories[agent_id, :]), num_strategies_max, agent_id)
+            _accumulate_strategy_counts!(ab_counts, @view(memory.group_b_memories[agent_id, :]), num_strategies_max, agent_id)
         else
-            _accumulate_strategy_counts!(ba_counts, @view(memory.group_a_memories[agent_id, :]), num_strategies_max)
-            _accumulate_strategy_counts!(bb_counts, @view(memory.group_b_memories[agent_id, :]), num_strategies_max)
+            _accumulate_strategy_counts!(ba_counts, @view(memory.group_a_memories[agent_id, :]), num_strategies_max, agent_id)
+            _accumulate_strategy_counts!(bb_counts, @view(memory.group_b_memories[agent_id, :]), num_strategies_max, agent_id)
         end
     end
 
@@ -69,6 +80,9 @@ uses strategy `j`, their payoffs are `U[i, j]` and `U[j, i]`.
 `payoff_gap` is the relative absolute difference
 `|payoff_A - payoff_B| / (|payoff_A| + |payoff_B|)`. `advantage = :fair` when
 `abs(payoff_A - payoff_B) < 0.01 * max(payoff_A, payoff_B, 0.01)`.
+
+When either count vector sums to zero, payoffs and `advantage` are `missing` and
+`missing_reason` is `:empty_strategy_counts` (not `NaN` or `:unknown`).
 """
 function compute_payoff_outcome(
         a_strategy_counts::AbstractVector{<:Integer},
@@ -86,8 +100,11 @@ function compute_payoff_outcome(
 
     if a_total == 0 || b_total == 0
         return (
-            payoff_gap = NaN, payoff_A = NaN, payoff_B = NaN,
-            advantage = :unknown,
+            payoff_gap = missing,
+            payoff_A = missing,
+            payoff_B = missing,
+            advantage = missing,
+            missing_reason = :empty_strategy_counts,
         )
     end
 
@@ -120,8 +137,11 @@ function compute_payoff_outcome(
     end
 
     return (
-        payoff_gap = payoff_gap, payoff_A = payoff_A, payoff_B = payoff_B,
+        payoff_gap = payoff_gap,
+        payoff_A = payoff_A,
+        payoff_B = payoff_B,
         advantage = advantage,
+        missing_reason = missing,
     )
 end
 
@@ -189,13 +209,13 @@ function sample_strategy_shares(
         rng::AbstractRNG;
         step::Int,
     )
-    num_strategies = config.num_strategies
-    payoffs = zeros(Float64, num_strategies)
-    optimal_strategies = Vector{Int}(undef, num_strategies)
-    counts_a_a = zeros(Int, num_strategies)
-    counts_a_b = zeros(Int, num_strategies)
-    counts_b_a = zeros(Int, num_strategies)
-    counts_b_b = zeros(Int, num_strategies)
+    n_strategies = num_strategies(config)
+    payoffs = zeros(Float64, n_strategies)
+    optimal_strategies = Vector{Int}(undef, n_strategies)
+    counts_a_a = zeros(Int, n_strategies)
+    counts_a_b = zeros(Int, n_strategies)
+    counts_b_a = zeros(Int, n_strategies)
+    counts_b_b = zeros(Int, n_strategies)
 
     n_a = length(population.group_a_indices)
     n_b = length(population.group_b_indices)
@@ -226,9 +246,9 @@ function sample_strategy_shares(
     end
 
     return (
-        group_a_against_group_a = _share_copy(counts_a_a, n_a, num_strategies),
-        group_a_against_group_b = _share_copy(counts_a_b, n_a > 0 && n_b > 0 ? n_a : 0, num_strategies),
-        group_b_against_group_a = _share_copy(counts_b_a, n_a > 0 && n_b > 0 ? n_b : 0, num_strategies),
-        group_b_against_group_b = _share_copy(counts_b_b, n_b, num_strategies),
+        group_a_against_group_a = _share_copy(counts_a_a, n_a, n_strategies),
+        group_a_against_group_b = _share_copy(counts_a_b, n_a > 0 && n_b > 0 ? n_a : 0, n_strategies),
+        group_b_against_group_a = _share_copy(counts_b_a, n_a > 0 && n_b > 0 ? n_b : 0, n_strategies),
+        group_b_against_group_b = _share_copy(counts_b_b, n_b, n_strategies),
     )
 end

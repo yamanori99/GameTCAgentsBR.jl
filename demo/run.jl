@@ -46,7 +46,7 @@ function _rebuild_config(
     return SimConfig(;
         game = config.game,
         num_agents = config.num_agents,
-        group_a_ratio = config.group_a_ratio,
+        group_a_size = config.group_a_size,
         type_conditioning_ratio_a = config.type_conditioning_ratio_a,
         type_conditioning_ratio_b = config.type_conditioning_ratio_b,
         memory_length_for_group_a = config.memory_length_for_group_a,
@@ -70,11 +70,11 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             6.0 0.0 0.0
         ]
-        game = PairGame(["L", "M", "H"], demand_payoff)
+        game = PairGame(["L", "M", "H"], demand_payoff, 1:3, 1:3)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_ratio = 0.0,
+            group_a_size = 0,
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -94,11 +94,11 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             9.5 0.0 0.0
         ]
-        game = PairGame(["L", "M", "H"], demand_payoff)
+        game = PairGame(["L", "M", "H"], demand_payoff, 1:3, 1:3)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_ratio = 0.3,
+            group_a_size = 6,
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -118,11 +118,11 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             9.0 0.0 0.0
         ]
-        game = PairGame(["L", "M", "H"], demand_payoff)
+        game = PairGame(["L", "M", "H"], demand_payoff, 1:3, 1:3)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_ratio = 0.3,
+            group_a_size = 6,
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -142,11 +142,11 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             8.5 0.0 0.0
         ]
-        game = PairGame(["L", "M", "H"], demand_payoff)
+        game = PairGame(["L", "M", "H"], demand_payoff, 1:3, 1:3)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_ratio = 0.3,
+            group_a_size = 6,
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -166,11 +166,11 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             8.0 0.0 0.0
         ]
-        game = PairGame(["L", "M", "H"], demand_payoff)
+        game = PairGame(["L", "M", "H"], demand_payoff, 1:3, 1:3)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_ratio = 0.3,
+            group_a_size = 6,
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -190,11 +190,11 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             7.5 0.0 0.0
         ]
-        game = PairGame(["L", "M", "H"], demand_payoff)
+        game = PairGame(["L", "M", "H"], demand_payoff, 1:3, 1:3)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_ratio = 0.3,
+            group_a_size = 6,
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -214,11 +214,11 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             7.0 0.0 0.0
         ]
-        game = PairGame(["L", "M", "H"], demand_payoff)
+        game = PairGame(["L", "M", "H"], demand_payoff, 1:3, 1:3)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_ratio = 0.3,
+            group_a_size = 6,
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -238,11 +238,11 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             6.5 0.0 0.0
         ]
-        game = PairGame(["L", "M", "H"], demand_payoff)
+        game = PairGame(["L", "M", "H"], demand_payoff, 1:3, 1:3)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_ratio = 0.3,
+            group_a_size = 6,
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -262,11 +262,11 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             6.0 0.0 0.0
         ]
-        game = PairGame(["L", "M", "H"], demand_payoff)
+        game = PairGame(["L", "M", "H"], demand_payoff, 1:3, 1:3)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_ratio = 0.3,
+            group_a_size = 6,
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -286,11 +286,11 @@ function _demo_setup(case::Symbol)
             5.0 5.0 0.0
             5.5 0.0 0.0
         ]
-        game = PairGame(["L", "M", "H"], demand_payoff)
+        game = PairGame(["L", "M", "H"], demand_payoff, 1:3, 1:3)
         config = SimConfig(;
             game = game,
             num_agents = 20,
-            group_a_ratio = 0.3,
+            group_a_size = 6,
             type_conditioning_ratio_a = 1.0,
             type_conditioning_ratio_b = 1.0,
             memory_length_for_group_a = 10,
@@ -469,8 +469,9 @@ function (rec::ShareSeries)(step, memory, config, population)
     if n_a > 0 && n_b > 0
         a_counts = round.(Int, shares.group_a_against_group_b .* n_a)
         b_counts = round.(Int, shares.group_b_against_group_a .* n_b)
-        gap = compute_payoff_outcome(a_counts, b_counts, config.game.U).payoff_gap
-        push!(rec.payoff_gap, isnan(gap) ? 0.0 : gap)
+        outcome = compute_payoff_outcome(a_counts, b_counts, config.game.U)
+        gap = outcome.payoff_gap
+        push!(rec.payoff_gap, ismissing(gap) ? 0.0 : gap)
     end
     return nothing
 end
@@ -658,18 +659,28 @@ function _print_inequality_analysis(io::IO, rec::ShareSeries, config::SimConfig)
     final_ab_counts = round.(Int, rec.group_a_against_group_b[end] .* n_a)
     final_ba_counts = round.(Int, rec.group_b_against_group_a[end] .* n_b)
     final_result = compute_payoff_outcome(final_ab_counts, final_ba_counts, config.game.U)
-    advantage_str = final_result.advantage == :fair ? "approximately equal" :
-        final_result.advantage == :a_advantage ? "A payoff higher" :
-        final_result.advantage == :b_advantage ? "B payoff higher" :
-        "Unknown"
-    @printf(
-        io,
-        "Final independent-share payoffs  gap %.3f   A %.2f   B %.2f   %s\n",
-        final_result.payoff_gap,
-        final_result.payoff_A,
-        final_result.payoff_B,
-        advantage_str,
-    )
+    if ismissing(final_result.payoff_gap)
+        println(io, "Final independent-share payoffs  missing ($(final_result.missing_reason))")
+    else
+        adv = final_result.advantage
+        advantage_str = if adv === :fair
+            "approximately equal"
+        elseif adv === :a_advantage
+            "A payoff higher"
+        elseif adv === :b_advantage
+            "B payoff higher"
+        else
+            "missing"
+        end
+        @printf(
+            io,
+            "Final independent-share payoffs  gap %.3f   A %.2f   B %.2f   %s\n",
+            final_result.payoff_gap,
+            final_result.payoff_A,
+            final_result.payoff_B,
+            advantage_str,
+        )
+    end
     return
 end
 

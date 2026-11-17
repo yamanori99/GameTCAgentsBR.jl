@@ -43,15 +43,15 @@ config = SimConfig(
     game = PairGame(
         ["L", "M", "H"],
         [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0],
+        1:3,
+        1:3,
     ),
     num_agents = 500,  # population size
-    group_a_ratio = 0.3,  # Group A: minority (30%)
+    group_a_size = 150,  # Group A: minority (30%)
     type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,  # all agents use opponent-group-specific memory
     memory_length_for_group_a = 10,
     memory_length_for_group_b = 10,
     common_memory_length = 20,
-    strategy_override = NoOverride(),
-    matching = OnePair(),
     num_initializations = 10000,  # independent trials
     steps_per_initialization = 200000,  # steps per trial
     random_seed = 42,
@@ -75,7 +75,7 @@ include("batch.jl")
 include("analysis.jl")
 
 # model.jl
-export PairGame, SimConfig
+export PairGame, SimConfig, num_strategies
 export GROUP_A, GROUP_B
 export Agent, AgentPopulation
 export MemorySystem

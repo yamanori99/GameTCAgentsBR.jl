@@ -9,10 +9,44 @@ const TEST_DEMAND_PAYOFF = [
     5.5 0.0 0.0
 ]
 
-const TEST_GAME = PairGame(["L", "M", "H"], TEST_DEMAND_PAYOFF)
+const TEST_GAME = PairGame(["L", "M", "H"], TEST_DEMAND_PAYOFF, 1:3, 1:3)
 
 function pairgame(M::AbstractMatrix)
-    return PairGame(string.(1:size(M, 1)), M)
+    n = size(M, 1)
+    return PairGame(string.(1:n), M, 1:n, 1:n)
+end
+
+"""Build a `SimConfig` with every required keyword set (test fixture only)."""
+function test_sim_config(;
+        game = TEST_GAME,
+        num_agents = 10,
+        group_a_size = 5,
+        type_conditioning_ratio_a = 1.0,
+        type_conditioning_ratio_b = 1.0,
+        memory_length_for_group_a = 10,
+        memory_length_for_group_b = 10,
+        common_memory_length = 20,
+        strategy_override = NoOverride(),
+        matching = OnePair(),
+        num_initializations = 1,
+        steps_per_initialization = 100,
+        random_seed = nothing,
+    )
+    return SimConfig(;
+        game,
+        num_agents,
+        group_a_size,
+        type_conditioning_ratio_a,
+        type_conditioning_ratio_b,
+        memory_length_for_group_a,
+        memory_length_for_group_b,
+        common_memory_length,
+        strategy_override,
+        matching,
+        num_initializations,
+        steps_per_initialization,
+        random_seed,
+    )
 end
 
 struct PlayMWhenEmpty <: StrategyOverride end

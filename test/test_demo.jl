@@ -1,4 +1,5 @@
 using GameTCAgentsBR
+using GameTCAgentsBR: num_strategies
 using Random
 using Test
 
@@ -19,7 +20,7 @@ end
         _, two = _demo_setup(:l40)
         @test occursin("L=4.0", title)
         @test occursin("one group", title)
-        @test config.group_a_ratio == 0.0
+        @test config.group_a_size == 0
         @test config.group_a_size == 0
         @test config.game.U == two.game.U
         @test config.num_agents == two.num_agents
@@ -62,7 +63,7 @@ end
         _, reference = _demo_setup(:l45)
         @test reference.game.labels == ["L", "M", "H"]
         @test reference.num_agents == 20
-        @test reference.group_a_ratio == 0.3
+        @test reference.group_a_size == 6
         @test reference.memory_length_for_group_a == 10
         @test reference.memory_length_for_group_b == 10
         @test reference.common_memory_length == 20
@@ -173,7 +174,7 @@ end
         rec = ShareSeries(1, Random.Xoshiro(1))
         rec(1, mem, config, population)
         @test length(rec.steps) == 1
-        @test length(rec.group_a_against_group_a[1]) == config.num_strategies
+        @test length(rec.group_a_against_group_a[1]) == num_strategies(config)
     end
 
     @testset "one-group trajectory" begin

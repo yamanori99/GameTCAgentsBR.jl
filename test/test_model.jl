@@ -9,13 +9,14 @@ using GameTCAgentsBR:
     _push_memory!,
     _record_observation!,
     assign_groups,
-    determine_strategy
+    determine_strategy,
+    num_strategies
 using Random: Xoshiro
 
 function _average_config(U; play_a = 1:3, play_b = 1:3)
     game = PairGame(["a", "b", "c"], U, play_a, play_b)
-    return SimConfig(
-        game = game, num_agents = 2, group_a_ratio = 0.5,
+    return test_sim_config(
+        game = game, num_agents = 2, group_a_size = 1,
         memory_length_for_group_a = 4,
         memory_length_for_group_b = 4,
         common_memory_length = 4,
@@ -23,7 +24,7 @@ function _average_config(U; play_a = 1:3, play_b = 1:3)
 end
 
 function _remembered_payoffs(config, mem, agent, opponent, rng)
-    n = config.num_strategies
+    n = num_strategies(config)
     means = zeros(n)
     optimal = Vector{Int}(undef, n)
     chosen, n_opt, saw_memory = determine_strategy(
@@ -34,103 +35,67 @@ end
 
 @testset "Model" begin
     @testset "SimConfig" begin
-        @testset "Default initialization" begin
-            config = SimConfig(game = TEST_GAME)
-            @test config.num_agents == 200
-            @test config.group_a_ratio == 0.3
-            @test config.type_conditioning_ratio_a == 1.0
-            @test config.type_conditioning_ratio_b == 1.0
-            @test config.memory_length_for_group_a == 10
-            @test config.memory_length_for_group_b == 10
-            @test config.common_memory_length == 20
+        @testset "Required keywords" begin
+            @test_throws ArgumentError SimConfig()
+            err = @test_throws ArgumentError SimConfig(game = TEST_GAME)
+            @test occursin("num_agents", string(err.value))
+            config = test_sim_config(num_agents = 100, group_a_size = 30)
             @test config.strategy_override isa NoOverride
             @test config.matching isa OnePair
             @test isconcretetype(typeof(config))
             @test isconcretetype(fieldtype(typeof(config), :strategy_override))
             @test isconcretetype(fieldtype(typeof(config), :matching))
             @test isconcretetype(fieldtype(TrialResult, :counts))
-            @test config.num_initializations == 10000
-            @test config.steps_per_initialization == 200000
             @test config.random_seed === nothing
-        end
-
-        @testset "Derived fields" begin
-            config = SimConfig(game = TEST_GAME, num_agents = 100, group_a_ratio = 0.3)
-            @test config.group_a_size == 30
-            @test config.num_strategies == 3
-
-            config2 = SimConfig(game = pairgame([1.0 2.0; 3.0 4.0]))
-            @test config2.num_strategies == 2
+            @test num_strategies(config) == 3
+            @test num_strategies(test_sim_config(game = pairgame([1.0 2.0; 3.0 4.0]))) == 2
         end
 
         @testset "Validation" begin
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 0)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 1)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, group_a_ratio = -0.1)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, group_a_ratio = 0.6)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, type_conditioning_ratio_a = -0.1)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, type_conditioning_ratio_b = 1.1)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, memory_length_for_group_a = 0)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, memory_length_for_group_b = 0)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, common_memory_length = 0)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_initializations = 0)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, steps_per_initialization = 0)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_agents = 10, group_a_ratio = 0.51)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_strategies = 2)
-            @test_throws ArgumentError SimConfig(game = TEST_GAME, num_strategies = 4)
-            @test_throws ArgumentError SimConfig(
-                game = TEST_GAME, num_agents = 10, group_a_ratio = 0.3, group_a_size = -1
-            )
-            @test_throws ArgumentError SimConfig(
-                game = TEST_GAME, num_agents = 10, group_a_ratio = 0.3, group_a_size = 4
-            )
-            @test SimConfig(
-                game = TEST_GAME, num_agents = 10, group_a_ratio = 0.3,
-                group_a_size = 3, num_strategies = 3,
-            ).group_a_size == 3
-            @test_throws ArgumentError SimConfig(
-                game = TEST_GAME, num_agents = 5, group_a_ratio = 0.5, group_a_size = 3
-            )
+            @test_throws ArgumentError test_sim_config(num_agents = 0, group_a_size = 0)
+            @test_throws ArgumentError test_sim_config(num_agents = 1, group_a_size = 0)
+            @test_throws ArgumentError test_sim_config(type_conditioning_ratio_a = -0.1)
+            @test_throws ArgumentError test_sim_config(type_conditioning_ratio_b = 1.1)
+            @test_throws ArgumentError test_sim_config(memory_length_for_group_a = 0)
+            @test_throws ArgumentError test_sim_config(memory_length_for_group_b = 0)
+            @test_throws ArgumentError test_sim_config(common_memory_length = 0)
+            @test_throws ArgumentError test_sim_config(num_initializations = 0)
+            @test_throws ArgumentError test_sim_config(steps_per_initialization = 0)
+            @test_throws ArgumentError test_sim_config(num_agents = 10, group_a_size = -1)
+            @test_throws ArgumentError test_sim_config(num_agents = 10, group_a_size = 6)
+            @test_throws ArgumentError test_sim_config(num_agents = 5, group_a_size = 3)
+            @test_throws ArgumentError test_sim_config(num_agents = 10, group_a_size = 10)
 
-            config0 = SimConfig(game = TEST_GAME, num_agents = 10, group_a_ratio = 0.0)
-            @test config0.group_a_size == 0
+            config0 = test_sim_config(num_agents = 10, group_a_size = 0)
             @test all(==(GROUP_B), assign_groups(config0))
 
-            config_half = @test_logs SimConfig(game = TEST_GAME, num_agents = 100, group_a_ratio = 0.5)
+            config_half = test_sim_config(num_agents = 100, group_a_size = 50)
             @test config_half.group_a_size == 50
-            config_odd = @test_logs (:warn, r"cannot be equal") SimConfig(
-                game = TEST_GAME, num_agents = 7, group_a_ratio = 0.5,
-            )
+            config_odd = test_sim_config(num_agents = 7, group_a_size = 3)
             @test config_odd.group_a_size == 3
-            config_tie = @test_logs (:warn, r"cannot be equal") SimConfig(
-                game = TEST_GAME, num_agents = 5, group_a_ratio = 0.5,
-            )
+            config_tie = test_sim_config(num_agents = 5, group_a_size = 2)
             @test config_tie.group_a_size == 2
-            config_three = @test_logs (:warn, r"cannot be equal") SimConfig(
-                game = TEST_GAME, num_agents = 3, group_a_ratio = 0.5,
-            )
-            @test config_three.group_a_size == 1
         end
 
         @testset "Payoff matrix sizes" begin
-            @test_throws ArgumentError PairGame(["1", "2"], [1.0 2.0 3.0; 4.0 5.0 6.0])
+            @test_throws ArgumentError PairGame(["1", "2"], [1.0 2.0 3.0; 4.0 5.0 6.0], 1:2, 1:2)
             @test_throws ArgumentError PairGame(["L", "M", "H"], ones(3, 3), [1, 2, 3], Int[])
             restricted = PairGame(["L", "M", "H"], ones(3, 3), [1, 2, 3], [1, 2])
             @test restricted.playable_B == [1, 2]
-            config = SimConfig(game = restricted, num_agents = 4, group_a_ratio = 0.5)
-            @test config.num_strategies == 3
+            config = test_sim_config(game = restricted, num_agents = 4, group_a_size = 2)
+            @test num_strategies(config) == 3
         end
 
         @testset "Int8 strategy limit" begin
             labels127 = string.(1:127)
-            @test PairGame(labels127, ones(127, 127)) isa PairGame
+            @test PairGame(labels127, ones(127, 127), 1:127, 1:127) isa PairGame
             labels128 = string.(1:128)
-            @test_throws ArgumentError PairGame(labels128, ones(128, 128))
+            @test_throws ArgumentError PairGame(labels128, ones(128, 128), 1:128, 1:128)
         end
     end
 
     @testset "AgentPopulation" begin
-        config = SimConfig(game = TEST_GAME, num_agents = 100, group_a_ratio = 0.3)
+        config = test_sim_config(num_agents = 100, group_a_size = 30)
         pop = AgentPopulation(config, Xoshiro(1))
         @test length(pop.agents) == 100
         @test pop.group_a_indices == collect(1:30)
@@ -138,18 +103,12 @@ end
         @test [a.group for a in pop.agents] == assign_groups(config)
         @test all(a.id == i for (i, a) in enumerate(pop.agents))
 
-        all_tc = AgentPopulation(
-            SimConfig(
-                game = TEST_GAME, num_agents = 20,
-                type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
-            ),
-            Xoshiro(1),
-        )
+        all_tc = AgentPopulation(test_sim_config(num_agents = 20), Xoshiro(1))
         @test all(a.uses_type_conditioning for a in all_tc.agents)
 
         none_tc = AgentPopulation(
-            SimConfig(
-                game = TEST_GAME, num_agents = 20,
+            test_sim_config(
+                num_agents = 20,
                 type_conditioning_ratio_a = 0.0, type_conditioning_ratio_b = 0.0,
             ),
             Xoshiro(1),
@@ -157,8 +116,8 @@ end
         @test all(!a.uses_type_conditioning for a in none_tc.agents)
 
         by_group = AgentPopulation(
-            SimConfig(
-                game = TEST_GAME, num_agents = 10, group_a_ratio = 0.4,
+            test_sim_config(
+                num_agents = 10, group_a_size = 4,
                 type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 0.0,
             ),
             Xoshiro(1),
@@ -168,8 +127,8 @@ end
 
         # One uniform draw per agent. Seed 202 and p = 0.5 yield 520 successes.
         partial = AgentPopulation(
-            SimConfig(
-                game = TEST_GAME, num_agents = 1000,
+            test_sim_config(
+                num_agents = 1000, group_a_size = 500,
                 type_conditioning_ratio_a = 0.5, type_conditioning_ratio_b = 0.5,
             ),
             Xoshiro(202),
@@ -179,8 +138,7 @@ end
     end
 
     @testset "MemorySystem" begin
-        config = SimConfig(
-            game = TEST_GAME,
+        config = test_sim_config(
             num_agents = 10,
             memory_length_for_group_a = 5,
             memory_length_for_group_b = 8,
@@ -200,7 +158,7 @@ end
         @test mem.common_memories[1, 1] == Int8(2)
         @test all(mem.group_a_memories[1, :] .== MEMORY_PLACEHOLDER)
 
-        ring = MemorySystem(SimConfig(game = TEST_GAME, num_agents = 2, memory_length_for_group_a = 3))
+        ring = MemorySystem(test_sim_config(num_agents = 2, group_a_size = 1, memory_length_for_group_a = 3))
         length_a = 3
         for strategy in Int8[1, 2, 3, 4]
             _push_memory!(ring.group_a_memories, ring.group_a_idx, 1, strategy, length_a)
@@ -210,10 +168,7 @@ end
     end
 
     @testset "Strategy functions" begin
-        config = SimConfig(
-            game = TEST_GAME, num_agents = 10,
-            type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
-        )
+        config = test_sim_config(num_agents = 10, group_a_size = 3)
         pop = AgentPopulation(config, Xoshiro(1))
         mem = MemorySystem(config)
         agent1 = pop.agents[1]
@@ -230,10 +185,7 @@ end
         @test !has_mem
 
         response_game = pairgame([3.0 3.0 3.0; 5.0 5.0 0.0; 7.0 0.0 0.0])
-        response_config = SimConfig(
-            game = response_game, num_agents = 10,
-            type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
-        )
+        response_config = test_sim_config(game = response_game, num_agents = 10, group_a_size = 3)
         response_pop = AgentPopulation(response_config, Xoshiro(1))
         response_mem = MemorySystem(response_config)
         for _ in 1:10
@@ -260,10 +212,7 @@ end
                 inside 0.0 0.0
             ]
         )
-        tie_config = SimConfig(
-            game = tie_game, num_agents = 10,
-            type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
-        )
+        tie_config = test_sim_config(game = tie_game, num_agents = 10, group_a_size = 3)
         tie_pop = AgentPopulation(tie_config, Xoshiro(1))
         tie_mem = MemorySystem(tie_config)
         _push_memory!(
@@ -284,10 +233,7 @@ end
                 outside 0.0 0.0
             ]
         )
-        gap_config = SimConfig(
-            game = gap_game, num_agents = 10,
-            type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
-        )
+        gap_config = test_sim_config(game = gap_game, num_agents = 10, group_a_size = 3)
         gap_pop = AgentPopulation(gap_config, Xoshiro(1))
         gap_mem = MemorySystem(gap_config)
         _push_memory!(
@@ -316,9 +262,9 @@ end
         @test 1 <= a1 <= config.num_agents
         @test 1 <= a2 <= config.num_agents
 
-        fixed = SimConfig(
-            game = TEST_GAME,
+        fixed = test_sim_config(
             num_agents = 4,
+            group_a_size = 1,
             steps_per_initialization = 1,
             matching = FixedPair(1, 2),
             random_seed = 1,
@@ -330,7 +276,9 @@ end
         @test !filled(trial.memory.common_memories[3, :])
         @test !filled(trial.memory.common_memories[4, :])
 
-        override_config = SimConfig(game = TEST_GAME, num_agents = 4, strategy_override = PlayMWhenEmpty())
+        override_config = test_sim_config(
+            num_agents = 4, group_a_size = 1, strategy_override = PlayMWhenEmpty(),
+        )
         override_pop = AgentPopulation(override_config, Xoshiro(1))
         override_mem = MemorySystem(override_config)
         empty_s1, empty_s2 = override_strategies(
@@ -355,8 +303,8 @@ end
         # Remembering strategy 1 uses column 1 of U. Strategy 3 pays 7, 0, 0,
         # so the best reply is strategy 3. Common memory is not that column.
         common_game = pairgame([3.0 3.0 3.0; 5.0 5.0 0.0; 7.0 0.0 0.0])
-        common_config = SimConfig(
-            game = common_game, num_agents = 2,
+        common_config = test_sim_config(
+            game = common_game, num_agents = 2, group_a_size = 1,
             memory_length_for_group_b = 2, common_memory_length = 2,
         )
         common_mem = MemorySystem(common_config)
@@ -380,8 +328,8 @@ end
         # B cannot play strategy 3. Against remembered strategy 1, A's best reply is 3.
         U = [4.5 4.5 4.5; 5.0 5.0 0.0; 5.5 0.0 0.0]
         limited = PairGame(["L", "M", "H"], U, [1, 2, 3], [1, 2])
-        limited_config = SimConfig(
-            game = limited, num_agents = 2, group_a_ratio = 0.5,
+        limited_config = test_sim_config(
+            game = limited, num_agents = 2, group_a_size = 1,
             memory_length_for_group_b = 1,
         )
         limited_mem = MemorySystem(limited_config)
@@ -504,14 +452,14 @@ end
             5.0 5.0 0.0
             5.5 0.0 0.0
         ]
-        shared = PairGame(["L", "M", "H"], U)
+        shared = PairGame(["L", "M", "H"], U, 1:3, 1:3)
         @test shared.labels == ["L", "M", "H"]
         @test shared.playable_A == [1, 2, 3]
         @test shared.playable_B == [1, 2, 3]
         @test shared.U == U
         @test shared.U !== U
 
-        same_rows = PairGame(["L", "L"], [1.0 0.0; 1.0 0.0])
+        same_rows = PairGame(["L", "L"], [1.0 0.0; 1.0 0.0], 1:2, 1:2)
         @test same_rows.playable_A == [1, 2]
         @test same_rows.U[1, :] == same_rows.U[2, :]
 
@@ -526,10 +474,9 @@ end
     end
 
     @testset "run_simulation" begin
-        config = SimConfig(
-            game = TEST_GAME,
+        config = test_sim_config(
             num_agents = 20,
-            group_a_ratio = 0.3,
+            group_a_size = 6,
             steps_per_initialization = 100,
             random_seed = 42,
         )
@@ -551,8 +498,8 @@ end
         actual = rand(3)
         @test expected == actual
 
-        override_ok = SimConfig(
-            game = TEST_GAME, num_agents = 4,
+        override_ok = test_sim_config(
+            num_agents = 4, group_a_size = 1,
             steps_per_initialization = 5,
             strategy_override = PlayMWhenEmpty(),
             random_seed = 1,
@@ -560,8 +507,8 @@ end
         @test run_simulation(override_ok; seed = 1) isa TrialResult
 
         limited = PairGame(["L", "M", "H"], TEST_DEMAND_PAYOFF, [1, 2, 3], [1, 2])
-        bad_override = SimConfig(
-            game = limited, num_agents = 4,
+        bad_override = test_sim_config(
+            game = limited, num_agents = 4, group_a_size = 1,
             steps_per_initialization = 1,
             strategy_override = ForceHForB(),
             matching = FixedPair(2, 3),
@@ -576,7 +523,7 @@ end
         )
         @test callback_count[] == 10
 
-        no_seed = SimConfig(game = TEST_GAME, num_agents = 4, steps_per_initialization = 1)
+        no_seed = test_sim_config(num_agents = 4, group_a_size = 1, steps_per_initialization = 1)
         @test_throws ArgumentError run_simulation(no_seed)
         @test_throws ArgumentError run_simulation(no_seed; seed = nothing)
     end

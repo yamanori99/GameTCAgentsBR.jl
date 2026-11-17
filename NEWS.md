@@ -2,6 +2,13 @@
 
 ## 0.2.0 (unreleased)
 
+- **`SimConfig`**: Model-defining keywords (`num_agents`, `group_a_size`, type-conditioning ratios, memory lengths, trial counts, and steps) have no defaults; omitting one raises `ArgumentError` naming the field and an example. Only `strategy_override` (`NoOverride()`), `matching` (`OnePair()`), and `random_seed` (`nothing`) may be omitted.
+- **`SimConfig`**: `group_a_ratio` is removed. Set `group_a_size` explicitly (agent count in Group A, not a fraction). The odd-`num_agents` `@warn` for a 50/50 ratio is gone with the ratio field.
+- **`SimConfig`**: The `num_strategies` field is removed. Use `num_strategies(config)` (`size(game.U, 1)`).
+- **`PairGame`**: Only `PairGame(labels, U, play_a, play_b)` remains. `play_a` and `play_b` are required (no all-strategies default). `PairGame(U)` and keyword defaults for playable sets raise `MethodError`; pass `1:n` explicitly.
+- **`count_final_strategies`**: Out-of-range strategy codes in memory raise `ArgumentError` with agent and slot (placeholder `-1` slots remain ignored).
+- **`compute_payoff_outcome`**: When either count vector sums to zero, `payoff_*` and `advantage` are `missing` with `missing_reason = :empty_strategy_counts` instead of `NaN` / `:unknown`. On success, `missing_reason` is `missing`.
+
 - **`compute_payoff_outcome`**: Count vectors must have the same length as each dimension of a square payoff matrix; mismatched, shorter, or longer vectors now raise `ArgumentError` instead of returning wrong payoffs or throwing `BoundsError`.
 - **`compute_payoff_outcome`**: The return value no longer includes `L_value` (use `payoff_matrix[1, 1]` when you need that quantity).
 - **`PairGame`**: Games with more than 127 strategies now raise `ArgumentError` at construction (memory stores strategy codes as `Int8`).

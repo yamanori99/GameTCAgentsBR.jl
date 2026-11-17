@@ -1,6 +1,6 @@
 # Tests for strategy counts, batch trials, payoffs, and strategy shares.
 
-using GameTCAgentsBR: GROUP_A, _push_memory!, _record_observation!
+using GameTCAgentsBR: GROUP_A, _push_memory!, _record_observation!, num_strategies
 
 function _trial_presence(trials, key)
     n = length(first(trials).counts[key])
@@ -16,10 +16,9 @@ end
 
 @testset "Analysis" begin
     @testset "count_final_strategies" begin
-        config = SimConfig(
-            game = TEST_GAME,
+        config = test_sim_config(
             num_agents = 10,
-            group_a_ratio = 0.3,
+            group_a_size = 3,
             memory_length_for_group_a = 5,
             memory_length_for_group_b = 5,
         )
@@ -40,8 +39,8 @@ end
         @test counts.b_remembers_a_slot_count == [0, 0, 7]
         @test counts.b_remembers_b_slot_count == [7, 0, 0]
 
-        sparse_config = SimConfig(
-            game = TEST_GAME, num_agents = 4, group_a_ratio = 0.5,
+        sparse_config = test_sim_config(
+            num_agents = 4, group_a_size = 2,
             memory_length_for_group_a = 10,
         )
         sparse = MemorySystem(sparse_config)
@@ -50,17 +49,16 @@ end
         @test sum(sparse_counts.a_remembers_a_slot_count) == 1
         @test sparse_counts.a_remembers_a_slot_count[2] == 1
 
-        # Two slots of the same strategy count twice. Placeholders and an
-        # out-of-range code do not. Common memory is not included.
-        slot_config = SimConfig(
-            game = TEST_GAME, num_agents = 2, group_a_ratio = 0.5,
+        # Two slots of the same strategy count twice. Placeholders are skipped.
+        # Out-of-range codes raise `ArgumentError`. Common memory is not included.
+        slot_config = test_sim_config(
+            num_agents = 2, group_a_size = 1,
             memory_length_for_group_a = 4, memory_length_for_group_b = 4,
             common_memory_length = 3,
         )
         slot_mem = MemorySystem(slot_config)
         slot_mem.group_a_memories[1, 1] = Int8(1)
         slot_mem.group_a_memories[1, 2] = Int8(1)
-        slot_mem.group_a_memories[1, 4] = Int8(9)
         slot_mem.group_b_memories[2, 1] = Int8(2)
         slot_mem.group_b_memories[2, 2] = Int8(2)
         fill!(slot_mem.common_memories, Int8(3))
@@ -69,10 +67,12 @@ end
         @test slot_counts.a_remembers_b_slot_count == [0, 0, 0]
         @test slot_counts.b_remembers_a_slot_count == [0, 0, 0]
         @test slot_counts.b_remembers_b_slot_count == [0, 2, 0]
+        slot_mem.group_a_memories[1, 4] = Int8(9)
+        @test_throws ArgumentError count_final_strategies(slot_mem, slot_config)
 
         wide = PairGame(["a", "b", "c", "d", "e"], ones(5, 5), 1:3, 4:5)
-        wide_config = SimConfig(
-            game = wide, num_agents = 2, group_a_ratio = 0.5,
+        wide_config = test_sim_config(
+            game = wide, num_agents = 2, group_a_size = 1,
             memory_length_for_group_a = 1, memory_length_for_group_b = 1,
         )
         wide_mem = MemorySystem(wide_config)
@@ -85,10 +85,9 @@ end
     end
 
     @testset "run_batch" begin
-        config = SimConfig(
-            game = TEST_GAME,
+        config = test_sim_config(
             num_agents = 20,
-            group_a_ratio = 0.3,
+            group_a_size = 6,
             num_initializations = 3,
             steps_per_initialization = 100,
             random_seed = 42,
@@ -111,9 +110,9 @@ end
         @test again.b_remembers_b_trial_count == result.b_remembers_b_trial_count
 
         trial_seeds = [100, 200, 300]
-        seeded = SimConfig(
-            game = TEST_GAME,
+        seeded = test_sim_config(
             num_agents = 20,
+            group_a_size = 6,
             num_initializations = 3,
             steps_per_initialization = 100,
         )
@@ -156,10 +155,11 @@ end
         @test b_advantage.advantage == :b_advantage
 
         empty = compute_payoff_outcome([0, 0, 0], [0, 0, 0], payoff_matrix)
-        @test isnan(empty.payoff_gap)
-        @test isnan(empty.payoff_A)
-        @test isnan(empty.payoff_B)
-        @test empty.advantage == :unknown
+        @test ismissing(empty.payoff_gap)
+        @test ismissing(empty.payoff_A)
+        @test ismissing(empty.payoff_B)
+        @test ismissing(empty.advantage)
+        @test empty.missing_reason == :empty_strategy_counts
 
         demand = compute_payoff_outcome(
             [0, 0, 100], [100, 0, 0],
@@ -183,10 +183,10 @@ end
         nonsquare = [1.0 2.0; 3.0 4.0; 5.0 6.0]
         @test_throws ArgumentError compute_payoff_outcome([1, 2, 3], [1, 2, 3], nonsquare)
 
-        config = SimConfig(
+        config = test_sim_config(
             game = pairgame([2.0 2.0 2.0; 5.0 5.0 0.0; 8.0 0.0 0.0]),
             num_agents = 10,
-            group_a_ratio = 0.3,
+            group_a_size = 3,
             memory_length_for_group_a = 5,
             memory_length_for_group_b = 5,
         )
@@ -211,12 +211,9 @@ end
     end
 
     @testset "sample_strategy_shares" begin
-        config = SimConfig(
-            game = TEST_GAME,
+        config = test_sim_config(
             num_agents = 4,
-            group_a_ratio = 0.5,
-            type_conditioning_ratio_a = 1.0,
-            type_conditioning_ratio_b = 1.0,
+            group_a_size = 2,
             memory_length_for_group_a = 2,
             memory_length_for_group_b = 2,
         )
@@ -227,24 +224,20 @@ end
         end
         shares = sample_strategy_shares(memory, config, population, Random.Xoshiro(1); step = 1)
         @test shares.group_a_against_group_a ≈ [0.0, 0.0, 1.0]
-        @test length(shares.group_a_against_group_b) == config.num_strategies
+        @test length(shares.group_a_against_group_b) == num_strategies(config)
         repeated = sample_strategy_shares(memory, config, population, Random.Xoshiro(1); step = 1)
         @test shares.group_b_against_group_a == repeated.group_b_against_group_a
 
-        one_group = SimConfig(
-            game = TEST_GAME, num_agents = 4, group_a_ratio = 0.0,
-            type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
-        )
+        one_group = test_sim_config(num_agents = 4, group_a_size = 0)
         one_shares = sample_strategy_shares(
             MemorySystem(one_group), one_group, AgentPopulation(one_group, Random.Xoshiro(1)), Random.Xoshiro(1); step = 1,
         )
         @test isempty(one_shares.group_a_against_group_a)
         @test isempty(one_shares.group_a_against_group_b)
-        @test length(one_shares.group_b_against_group_b) == one_group.num_strategies
+        @test length(one_shares.group_b_against_group_b) == num_strategies(one_group)
 
-        empty_override = SimConfig(
-            game = TEST_GAME, num_agents = 4, group_a_ratio = 0.5,
-            type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
+        empty_override = test_sim_config(
+            num_agents = 4, group_a_size = 2,
             strategy_override = PlayMWhenEmpty(),
         )
         empty_shares = sample_strategy_shares(
@@ -254,8 +247,8 @@ end
         @test empty_shares.group_a_against_group_b ≈ [0.0, 1.0, 0.0]
 
         limited_game = PairGame(["L", "M", "H"], TEST_DEMAND_PAYOFF, [1, 2, 3], [1, 2])
-        bad_shares = SimConfig(
-            game = limited_game, num_agents = 4, group_a_ratio = 0.25,
+        bad_shares = test_sim_config(
+            game = limited_game, num_agents = 4, group_a_size = 1,
             strategy_override = ForceHForActingB(),
         )
         bad_shares_pop = AgentPopulation(bad_shares, Random.Xoshiro(1))
@@ -263,9 +256,8 @@ end
             MemorySystem(bad_shares), bad_shares, bad_shares_pop, Random.Xoshiro(1); step = 1,
         )
 
-        fast = SimConfig(
-            game = TEST_GAME, num_agents = 6, group_a_ratio = 0.5,
-            type_conditioning_ratio_a = 1.0, type_conditioning_ratio_b = 1.0,
+        fast = test_sim_config(
+            num_agents = 6, group_a_size = 3,
             steps_per_initialization = 5, random_seed = 11,
         )
         without = run_simulation(fast; seed = 11)
