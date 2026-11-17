@@ -18,7 +18,10 @@ group-a-size-halfup-equals-julia	refuted	src/model.jl	rounding-mode / Float
 group-a-size-float-rational	refuted	src/model.jl	607 grid mismatches
 group-a-size-bounded	proven	src/model.jl	-
 tie-eps-includes-near-best	proven	src/model.jl	-
-tie-eps-equals-exact	refuted	src/model.jl	intentional superset
+tie-eps-equals-exact-float	refuted	src/model.jl	float argmax superset
+float-eps-equals-rational-argmax	refuted	src/model.jl	41/1.84e7 search; Nash L=1.2 witness
+rational-argmax-no-eps-drop	proven	src/model.jl	0 eps_smaller in search
+mean-gap-beats-tie-eps	proven	src/model.jl	1/(qm)>1e-10 for qm≤4000
 exact-argmax-subset-eps	proven	src/model.jl	-
 dyadic-eps-agreement	proven	src/model.jl	-
 int8-accepts-128	refuted	src/model.jl	PR #15 n≤127
