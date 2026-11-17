@@ -119,6 +119,13 @@ end
             config = SimConfig(game = restricted, num_agents = 4, group_a_ratio = 0.5)
             @test config.num_strategies == 3
         end
+
+        @testset "Int8 strategy limit" begin
+            labels127 = string.(1:127)
+            @test PairGame(labels127, ones(127, 127)) isa PairGame
+            labels128 = string.(1:128)
+            @test_throws ArgumentError PairGame(labels128, ones(128, 128))
+        end
     end
 
     @testset "AgentPopulation" begin

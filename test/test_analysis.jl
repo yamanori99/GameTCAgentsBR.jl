@@ -140,7 +140,7 @@ end
         @test fair.payoff_gap ≈ 0.0 atol = 0.001
         @test fair.payoff_A ≈ fair.payoff_B atol = 0.001
         @test fair.advantage == :fair
-        @test fair.L_value ≈ 2.0
+        @test !hasproperty(fair, :L_value)
 
         a_advantage = compute_payoff_outcome([0, 0, 100], [100, 0, 0], payoff_matrix)
         @test a_advantage.payoff_A ≈ 8.0 atol = 0.001
@@ -167,7 +167,20 @@ end
         @test demand.payoff_A ≈ 5.5 atol = 0.001
         @test demand.payoff_B ≈ 4.5 atol = 0.001
         @test demand.payoff_gap ≈ 0.1 atol = 0.001
-        @test demand.L_value ≈ 4.5
+        @test !hasproperty(demand, :L_value)
+
+        zero_matrix = zeros(3, 3)
+        zero_payoff = compute_payoff_outcome([100, 0, 0], [0, 100, 0], zero_matrix)
+        @test zero_payoff.payoff_A == 0.0
+        @test zero_payoff.payoff_B == 0.0
+        @test zero_payoff.payoff_gap == 0.0
+        @test zero_payoff.advantage == :fair
+
+        @test_throws ArgumentError compute_payoff_outcome([1, 2], [1, 2, 3], payoff_matrix)
+        @test_throws ArgumentError compute_payoff_outcome([1, 2, 3, 4], [1, 2, 3, 4], payoff_matrix)
+        @test_throws ArgumentError compute_payoff_outcome([1, 2, 3], [1, 2], payoff_matrix)
+        nonsquare = [1.0 2.0; 3.0 4.0; 5.0 6.0]
+        @test_throws ArgumentError compute_payoff_outcome([1, 2, 3], [1, 2, 3], nonsquare)
 
         config = SimConfig(
             game = pairgame([2.0 2.0 2.0; 5.0 5.0 0.0; 8.0 0.0 0.0]),
