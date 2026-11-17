@@ -32,7 +32,7 @@ function main()
     println("rat_means=", [Float64(rμ[s]) for s in playable])
     println("float_eps_set=$fset rational_argmax=$rset")
     fset == [1, 3] && rset == [3] || error("unexpected sets")
-    println("REPRODUCED rational-vs-float-br-eps-larger")
+    return println("REPRODUCED rational-vs-float-br-eps-larger")
 end
 
 main()
