@@ -2,6 +2,10 @@
 
 ## 0.2.0 (unreleased)
 
+- **`demo/run.jl`**: No arguments prints usage to stderr and exits with code 2 (no implicit default run). `-h` / `--help` print usage to stdout and exit 0. Usage errors print an actionable rewrite hint to stderr and exit 2.
+- **`demo/run.jl`**: The `trajectory` mode alias is removed; pass `traj` instead.
+- **`demo/run.jl`**: Trajectory payoff-gap samples record `missing` with a reason when independent-share payoffs are undefined, instead of substituting `0.0`.
+- **`demo/run.jl`**: `effective_traj_interval` raises `ArgumentError` when `samples <= 0` instead of falling back to the default interval.
 - **`compute_payoff_outcome`**: Count vectors must have the same length as each dimension of a square payoff matrix; mismatched, shorter, or longer vectors now raise `ArgumentError` instead of returning wrong payoffs or throwing `BoundsError`.
 - **`compute_payoff_outcome`**: The return value no longer includes `L_value` (use `payoff_matrix[1, 1]` when you need that quantity).
 - **`PairGame`**: Games with more than 127 strategies now raise `ArgumentError` at construction (memory stores strategy codes as `Int8`).
