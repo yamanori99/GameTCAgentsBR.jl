@@ -4,6 +4,10 @@
 const GROUP_A = Int8(1)
 const GROUP_B = Int8(2)
 
+# Strategy codes in memory matrices use this element type.
+const MEMORY_STRATEGY_ELTYPE = Int8
+const MAX_NUM_STRATEGIES = typemax(MEMORY_STRATEGY_ELTYPE)
+
 """
     PairGame(U)
     PairGame(labels, U, play_a=1:n, play_b=1:n)
@@ -29,6 +33,7 @@ struct PairGame
         )
         n = size(U, 1)
         @argcheck size(U, 2) == n "payoff matrix must be square"
+        @argcheck n <= MAX_NUM_STRATEGIES "number of strategies must not exceed $MAX_NUM_STRATEGIES (memories store strategies as $MEMORY_STRATEGY_ELTYPE)"
         @argcheck length(labels) == n "label count must match the payoff matrix"
         @argcheck !isempty(playable_A) && !isempty(playable_B) "each group must have a strategy"
         @argcheck allunique(playable_A) && allunique(playable_B) "playable strategies must be unique"

@@ -75,8 +75,11 @@ function compute_payoff_outcome(
         b_strategy_counts::AbstractVector{<:Integer},
         payoff_matrix::Matrix{Float64}
     )
-    k = length(a_strategy_counts)
-    L_value = payoff_matrix[1, 1]
+    n = size(payoff_matrix, 1)
+    @argcheck size(payoff_matrix, 2) == n "payoff matrix must be square"
+    len_a = length(a_strategy_counts)
+    len_b = length(b_strategy_counts)
+    @argcheck len_a == n && len_b == n "strategy count vector lengths must match payoff matrix size ($n); got $len_a and $len_b"
 
     a_total = sum(a_strategy_counts)
     b_total = sum(b_strategy_counts)
@@ -84,7 +87,7 @@ function compute_payoff_outcome(
     if a_total == 0 || b_total == 0
         return (
             payoff_gap = NaN, payoff_A = NaN, payoff_B = NaN,
-            advantage = :unknown, L_value = L_value,
+            advantage = :unknown,
         )
     end
 
@@ -94,14 +97,14 @@ function compute_payoff_outcome(
     payoff_A = 0.0
     payoff_B = 0.0
 
-    for i in 1:k, j in 1:k
+    for i in 1:n, j in 1:n
         prob = a_freq[i] * b_freq[j]
         payoff_A += prob * payoff_matrix[i, j]
         payoff_B += prob * payoff_matrix[j, i]
     end
 
     total_magnitude = abs(payoff_A) + abs(payoff_B)
-    if total_magnitude ≈ 0.0
+    if iszero(total_magnitude)
         payoff_gap = 0.0
     else
         payoff_gap = abs(payoff_A - payoff_B) / total_magnitude
@@ -118,7 +121,7 @@ function compute_payoff_outcome(
 
     return (
         payoff_gap = payoff_gap, payoff_A = payoff_A, payoff_B = payoff_B,
-        advantage = advantage, L_value = L_value,
+        advantage = advantage,
     )
 end
 
